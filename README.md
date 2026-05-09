@@ -13,6 +13,11 @@ The target contract is a deterministic `tfconfig.static.v1` fact model that
 OpenUdon can consume when scaffolding reviewable UWS packages from
 Terraform/OpenTofu configuration and OpenAPI documents.
 
+The initial model contract is documented in
+[docs/static-v1.md](docs/static-v1.md). OpenUdon consumes the Go API as the
+primary boundary; deterministic JSON is an export/debug projection suitable for
+fixtures and review artifacts.
+
 This package is static analysis only. It does not run provider plugins,
 initialize backends, load state, refresh, plan, or apply.
 
