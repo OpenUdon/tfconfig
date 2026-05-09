@@ -1,0 +1,2209 @@
+{
+  "version": "tfconfig.static.v1",
+  "producer": "github.com/OpenUdon/tfconfig",
+  "root_dir": "testdata/fixtures/core-language/input",
+  "source_roots": [
+    {
+      "id": "root",
+      "module_address": "",
+      "dir": "testdata/fixtures/core-language/input"
+    }
+  ],
+  "source_files": [
+    {
+      "id": "main.tf",
+      "module_address": "",
+      "path": "main.tf",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "outputs.tf",
+      "module_address": "",
+      "path": "outputs.tf",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "providers.tofu",
+      "module_address": "",
+      "path": "providers.tofu",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "tests/main.tftest.hcl",
+      "module_address": "",
+      "path": "tests/main.tftest.hcl",
+      "format": "hcl",
+      "role": "test"
+    },
+    {
+      "id": "variables.tf",
+      "module_address": "",
+      "path": "variables.tf",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "versions.tf",
+      "module_address": "",
+      "path": "versions.tf",
+      "format": "hcl",
+      "role": "primary"
+    }
+  ],
+  "modules": [
+    {
+      "address": "",
+      "dir": ".",
+      "status": "root",
+      "source_files": [
+        "main.tf",
+        "outputs.tf",
+        "providers.tofu",
+        "variables.tf",
+        "versions.tf"
+      ],
+      "required_versions": [
+        {
+          "kind": "string",
+          "literal": "\u003e= 1.6.0",
+          "range": {
+            "source_id": "versions.tf",
+            "path": "versions.tf",
+            "start": {
+              "line": 2,
+              "column": 22,
+              "byte": 33
+            },
+            "end": {
+              "line": 2,
+              "column": 32,
+              "byte": 43
+            }
+          }
+        }
+      ],
+      "required_providers": [
+        {
+          "local_name": "aws",
+          "source": "hashicorp/aws",
+          "version_constraints": [
+            "~\u003e 5.0"
+          ],
+          "range": {
+            "source_id": "versions.tf",
+            "path": "versions.tf",
+            "start": {
+              "line": 5,
+              "column": 5,
+              "byte": 72
+            },
+            "end": {
+              "line": 8,
+              "column": 6,
+              "byte": 142
+            }
+          }
+        },
+        {
+          "local_name": "random",
+          "version_constraints": [
+            "\u003e= 3.5.0"
+          ],
+          "range": {
+            "source_id": "versions.tf",
+            "path": "versions.tf",
+            "start": {
+              "line": 9,
+              "column": 5,
+              "byte": 147
+            },
+            "end": {
+              "line": 9,
+              "column": 24,
+              "byte": 166
+            }
+          }
+        }
+      ],
+      "provider_configs": [
+        {
+          "local_name": "aws",
+          "address": "provider.aws",
+          "config": [
+            {
+              "path": "region",
+              "value": {
+                "kind": "expression",
+                "expression": "var.region",
+                "references": [
+                  {
+                    "traversal": "var.region",
+                    "subject": "var.region",
+                    "range": {
+                      "source_id": "providers.tofu",
+                      "path": "providers.tofu",
+                      "start": {
+                        "line": 2,
+                        "column": 12,
+                        "byte": 28
+                      },
+                      "end": {
+                        "line": 2,
+                        "column": 22,
+                        "byte": 38
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "providers.tofu",
+                  "path": "providers.tofu",
+                  "start": {
+                    "line": 2,
+                    "column": 12,
+                    "byte": 28
+                  },
+                  "end": {
+                    "line": 2,
+                    "column": 22,
+                    "byte": 38
+                  }
+                }
+              },
+              "range": {
+                "source_id": "providers.tofu",
+                "path": "providers.tofu",
+                "start": {
+                  "line": 2,
+                  "column": 3,
+                  "byte": 19
+                },
+                "end": {
+                  "line": 2,
+                  "column": 22,
+                  "byte": 38
+                }
+              }
+            }
+          ],
+          "references": [
+            {
+              "traversal": "var.region",
+              "subject": "var.region",
+              "range": {
+                "source_id": "providers.tofu",
+                "path": "providers.tofu",
+                "start": {
+                  "line": 2,
+                  "column": 12,
+                  "byte": 28
+                },
+                "end": {
+                  "line": 2,
+                  "column": 22,
+                  "byte": 38
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "providers.tofu",
+            "path": "providers.tofu",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 15,
+              "byte": 14
+            }
+          }
+        },
+        {
+          "local_name": "aws",
+          "alias": "west",
+          "address": "provider.aws.west",
+          "config": [
+            {
+              "path": "region",
+              "value": {
+                "kind": "string",
+                "literal": "us-west-2",
+                "range": {
+                  "source_id": "providers.tofu",
+                  "path": "providers.tofu",
+                  "start": {
+                    "line": 7,
+                    "column": 12,
+                    "byte": 88
+                  },
+                  "end": {
+                    "line": 7,
+                    "column": 23,
+                    "byte": 99
+                  }
+                }
+              },
+              "range": {
+                "source_id": "providers.tofu",
+                "path": "providers.tofu",
+                "start": {
+                  "line": 7,
+                  "column": 3,
+                  "byte": 79
+                },
+                "end": {
+                  "line": 7,
+                  "column": 23,
+                  "byte": 99
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "providers.tofu",
+            "path": "providers.tofu",
+            "start": {
+              "line": 5,
+              "column": 1,
+              "byte": 42
+            },
+            "end": {
+              "line": 5,
+              "column": 15,
+              "byte": 56
+            }
+          }
+        }
+      ],
+      "variables": [
+        {
+          "name": "api_token",
+          "default": {
+            "kind": "redacted",
+            "sensitive": true,
+            "redacted": true,
+            "range": {
+              "source_id": "variables.tf",
+              "path": "variables.tf",
+              "start": {
+                "line": 9,
+                "column": 15,
+                "byte": 159
+              },
+              "end": {
+                "line": 9,
+                "column": 29,
+                "byte": 173
+              }
+            }
+          },
+          "sensitive": true,
+          "range": {
+            "source_id": "variables.tf",
+            "path": "variables.tf",
+            "start": {
+              "line": 7,
+              "column": 1,
+              "byte": 103
+            },
+            "end": {
+              "line": 7,
+              "column": 21,
+              "byte": 123
+            }
+          }
+        },
+        {
+          "name": "names",
+          "type": {
+            "kind": "expression",
+            "expression": "list(string)",
+            "references": [
+              {
+                "traversal": "string",
+                "subject": "string",
+                "range": {
+                  "source_id": "variables.tf",
+                  "path": "variables.tf",
+                  "start": {
+                    "line": 13,
+                    "column": 18,
+                    "byte": 213
+                  },
+                  "end": {
+                    "line": 13,
+                    "column": 24,
+                    "byte": 219
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "variables.tf",
+              "path": "variables.tf",
+              "start": {
+                "line": 13,
+                "column": 13,
+                "byte": 208
+              },
+              "end": {
+                "line": 13,
+                "column": 25,
+                "byte": 220
+              }
+            }
+          },
+          "default": {
+            "kind": "collection",
+            "literal": [
+              "web",
+              "worker"
+            ],
+            "range": {
+              "source_id": "variables.tf",
+              "path": "variables.tf",
+              "start": {
+                "line": 14,
+                "column": 13,
+                "byte": 233
+              },
+              "end": {
+                "line": 14,
+                "column": 30,
+                "byte": 250
+              }
+            }
+          },
+          "range": {
+            "source_id": "variables.tf",
+            "path": "variables.tf",
+            "start": {
+              "line": 12,
+              "column": 1,
+              "byte": 177
+            },
+            "end": {
+              "line": 12,
+              "column": 17,
+              "byte": 193
+            }
+          }
+        },
+        {
+          "name": "region",
+          "type": {
+            "kind": "expression",
+            "expression": "string",
+            "references": [
+              {
+                "traversal": "string",
+                "subject": "string",
+                "range": {
+                  "source_id": "variables.tf",
+                  "path": "variables.tf",
+                  "start": {
+                    "line": 2,
+                    "column": 17,
+                    "byte": 36
+                  },
+                  "end": {
+                    "line": 2,
+                    "column": 23,
+                    "byte": 42
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "variables.tf",
+              "path": "variables.tf",
+              "start": {
+                "line": 2,
+                "column": 17,
+                "byte": 36
+              },
+              "end": {
+                "line": 2,
+                "column": 23,
+                "byte": 42
+              }
+            }
+          },
+          "default": {
+            "kind": "string",
+            "literal": "us-east-1",
+            "range": {
+              "source_id": "variables.tf",
+              "path": "variables.tf",
+              "start": {
+                "line": 3,
+                "column": 17,
+                "byte": 59
+              },
+              "end": {
+                "line": 3,
+                "column": 28,
+                "byte": 70
+              }
+            }
+          },
+          "description": "AWS region",
+          "range": {
+            "source_id": "variables.tf",
+            "path": "variables.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 18,
+              "byte": 17
+            }
+          }
+        }
+      ],
+      "locals": [
+        {
+          "name": "service_name",
+          "value": {
+            "kind": "expression",
+            "expression": "\"${var.region}-service\"",
+            "references": [
+              {
+                "traversal": "var.region",
+                "subject": "var.region",
+                "range": {
+                  "source_id": "variables.tf",
+                  "path": "variables.tf",
+                  "start": {
+                    "line": 18,
+                    "column": 21,
+                    "byte": 283
+                  },
+                  "end": {
+                    "line": 18,
+                    "column": 31,
+                    "byte": 293
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "variables.tf",
+              "path": "variables.tf",
+              "start": {
+                "line": 18,
+                "column": 18,
+                "byte": 280
+              },
+              "end": {
+                "line": 18,
+                "column": 41,
+                "byte": 303
+              }
+            }
+          },
+          "references": [
+            {
+              "traversal": "var.region",
+              "subject": "var.region",
+              "range": {
+                "source_id": "variables.tf",
+                "path": "variables.tf",
+                "start": {
+                  "line": 18,
+                  "column": 21,
+                  "byte": 283
+                },
+                "end": {
+                  "line": 18,
+                  "column": 31,
+                  "byte": 293
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "variables.tf",
+            "path": "variables.tf",
+            "start": {
+              "line": 18,
+              "column": 3,
+              "byte": 265
+            },
+            "end": {
+              "line": 18,
+              "column": 41,
+              "byte": 303
+            }
+          }
+        },
+        {
+          "name": "tags",
+          "value": {
+            "kind": "expression",
+            "expression": "{\n    env = var.region\n  }",
+            "references": [
+              {
+                "traversal": "var.region",
+                "subject": "var.region",
+                "range": {
+                  "source_id": "variables.tf",
+                  "path": "variables.tf",
+                  "start": {
+                    "line": 20,
+                    "column": 11,
+                    "byte": 325
+                  },
+                  "end": {
+                    "line": 20,
+                    "column": 21,
+                    "byte": 335
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "variables.tf",
+              "path": "variables.tf",
+              "start": {
+                "line": 19,
+                "column": 10,
+                "byte": 313
+              },
+              "end": {
+                "line": 21,
+                "column": 4,
+                "byte": 339
+              }
+            }
+          },
+          "references": [
+            {
+              "traversal": "var.region",
+              "subject": "var.region",
+              "range": {
+                "source_id": "variables.tf",
+                "path": "variables.tf",
+                "start": {
+                  "line": 20,
+                  "column": 11,
+                  "byte": 325
+                },
+                "end": {
+                  "line": 20,
+                  "column": 21,
+                  "byte": 335
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "variables.tf",
+            "path": "variables.tf",
+            "start": {
+              "line": 19,
+              "column": 3,
+              "byte": 306
+            },
+            "end": {
+              "line": 21,
+              "column": 4,
+              "byte": 339
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "service_name",
+          "value": {
+            "kind": "expression",
+            "expression": "local.service_name",
+            "references": [
+              {
+                "traversal": "local.service_name",
+                "subject": "local.service_name",
+                "range": {
+                  "source_id": "outputs.tf",
+                  "path": "outputs.tf",
+                  "start": {
+                    "line": 2,
+                    "column": 16,
+                    "byte": 39
+                  },
+                  "end": {
+                    "line": 2,
+                    "column": 34,
+                    "byte": 57
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "outputs.tf",
+              "path": "outputs.tf",
+              "start": {
+                "line": 2,
+                "column": 16,
+                "byte": 39
+              },
+              "end": {
+                "line": 2,
+                "column": 34,
+                "byte": 57
+              }
+            }
+          },
+          "depends_on": [
+            {
+              "traversal": "aws_instance.web",
+              "subject": "aws_instance.web",
+              "range": {
+                "source_id": "outputs.tf",
+                "path": "outputs.tf",
+                "start": {
+                  "line": 3,
+                  "column": 17,
+                  "byte": 74
+                },
+                "end": {
+                  "line": 3,
+                  "column": 33,
+                  "byte": 90
+                }
+              }
+            }
+          ],
+          "references": [
+            {
+              "traversal": "local.service_name",
+              "subject": "local.service_name",
+              "range": {
+                "source_id": "outputs.tf",
+                "path": "outputs.tf",
+                "start": {
+                  "line": 2,
+                  "column": 16,
+                  "byte": 39
+                },
+                "end": {
+                  "line": 2,
+                  "column": 34,
+                  "byte": 57
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "outputs.tf",
+            "path": "outputs.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 22,
+              "byte": 21
+            }
+          }
+        },
+        {
+          "name": "token",
+          "value": {
+            "kind": "redacted",
+            "sensitive": true,
+            "redacted": true,
+            "range": {
+              "source_id": "outputs.tf",
+              "path": "outputs.tf",
+              "start": {
+                "line": 8,
+                "column": 15,
+                "byte": 145
+              },
+              "end": {
+                "line": 8,
+                "column": 32,
+                "byte": 162
+              }
+            }
+          },
+          "sensitive": true,
+          "range": {
+            "source_id": "outputs.tf",
+            "path": "outputs.tf",
+            "start": {
+              "line": 6,
+              "column": 1,
+              "byte": 95
+            },
+            "end": {
+              "line": 6,
+              "column": 15,
+              "byte": 109
+            }
+          }
+        }
+      ],
+      "resources": [
+        {
+          "address": "aws_instance.web",
+          "type": "aws_instance",
+          "name": "web",
+          "provider": {
+            "local_name": "aws",
+            "alias": "west",
+            "address": "provider.aws.west",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 2,
+                "column": 14,
+                "byte": 45
+              },
+              "end": {
+                "line": 2,
+                "column": 22,
+                "byte": 53
+              }
+            }
+          },
+          "config": [
+            {
+              "path": "ami",
+              "value": {
+                "kind": "expression",
+                "expression": "data.aws_ami.base.id",
+                "references": [
+                  {
+                    "traversal": "data.aws_ami.base.id",
+                    "subject": "data.aws_ami",
+                    "range": {
+                      "source_id": "main.tf",
+                      "path": "main.tf",
+                      "start": {
+                        "line": 3,
+                        "column": 14,
+                        "byte": 67
+                      },
+                      "end": {
+                        "line": 3,
+                        "column": 34,
+                        "byte": 87
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 3,
+                    "column": 14,
+                    "byte": 67
+                  },
+                  "end": {
+                    "line": 3,
+                    "column": 34,
+                    "byte": 87
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 3,
+                  "column": 3,
+                  "byte": 56
+                },
+                "end": {
+                  "line": 3,
+                  "column": 34,
+                  "byte": 87
+                }
+              }
+            },
+            {
+              "path": "name",
+              "value": {
+                "kind": "expression",
+                "expression": "local.service_name",
+                "references": [
+                  {
+                    "traversal": "local.service_name",
+                    "subject": "local.service_name",
+                    "range": {
+                      "source_id": "main.tf",
+                      "path": "main.tf",
+                      "start": {
+                        "line": 4,
+                        "column": 14,
+                        "byte": 101
+                      },
+                      "end": {
+                        "line": 4,
+                        "column": 32,
+                        "byte": 119
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 4,
+                    "column": 14,
+                    "byte": 101
+                  },
+                  "end": {
+                    "line": 4,
+                    "column": 32,
+                    "byte": 119
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 4,
+                  "column": 3,
+                  "byte": 90
+                },
+                "end": {
+                  "line": 4,
+                  "column": 32,
+                  "byte": 119
+                }
+              }
+            },
+            {
+              "path": "token",
+              "value": {
+                "kind": "redacted",
+                "sensitive_candidate": {
+                  "reason": "attribute name suggests secret material",
+                  "attribute_path": "token"
+                },
+                "redacted": true,
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 5,
+                    "column": 14,
+                    "byte": 133
+                  },
+                  "end": {
+                    "line": 5,
+                    "column": 34,
+                    "byte": 153
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 5,
+                  "column": 3,
+                  "byte": 122
+                },
+                "end": {
+                  "line": 5,
+                  "column": 34,
+                  "byte": 153
+                }
+              }
+            }
+          ],
+          "lifecycle": {
+            "create_before_destroy": {
+              "kind": "bool",
+              "literal": false,
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 14,
+                  "column": 29,
+                  "byte": 305
+                },
+                "end": {
+                  "line": 14,
+                  "column": 34,
+                  "byte": 310
+                }
+              }
+            },
+            "prevent_destroy": {
+              "kind": "bool",
+              "literal": true,
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 13,
+                  "column": 28,
+                  "byte": 272
+                },
+                "end": {
+                  "line": 13,
+                  "column": 32,
+                  "byte": 276
+                }
+              }
+            },
+            "ignore_changes": [
+              {
+                "kind": "expression",
+                "expression": "[tags]",
+                "references": [
+                  {
+                    "traversal": "tags",
+                    "subject": "tags",
+                    "range": {
+                      "source_id": "main.tf",
+                      "path": "main.tf",
+                      "start": {
+                        "line": 15,
+                        "column": 29,
+                        "byte": 339
+                      },
+                      "end": {
+                        "line": 15,
+                        "column": 33,
+                        "byte": 343
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 15,
+                    "column": 28,
+                    "byte": 338
+                  },
+                  "end": {
+                    "line": 15,
+                    "column": 34,
+                    "byte": 344
+                  }
+                }
+              }
+            ],
+            "replace_triggered_by": [
+              {
+                "traversal": "aws_security_group.web",
+                "subject": "aws_security_group.web",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 16,
+                    "column": 29,
+                    "byte": 373
+                  },
+                  "end": {
+                    "line": 16,
+                    "column": 51,
+                    "byte": 395
+                  }
+                }
+              }
+            ],
+            "preconditions": [
+              {
+                "condition": {
+                  "kind": "expression",
+                  "expression": "var.region != \"\"",
+                  "references": [
+                    {
+                      "traversal": "var.region",
+                      "subject": "var.region",
+                      "range": {
+                        "source_id": "main.tf",
+                        "path": "main.tf",
+                        "start": {
+                          "line": 19,
+                          "column": 23,
+                          "byte": 439
+                        },
+                        "end": {
+                          "line": 19,
+                          "column": 33,
+                          "byte": 449
+                        }
+                      }
+                    }
+                  ],
+                  "range": {
+                    "source_id": "main.tf",
+                    "path": "main.tf",
+                    "start": {
+                      "line": 19,
+                      "column": 23,
+                      "byte": 439
+                    },
+                    "end": {
+                      "line": 19,
+                      "column": 39,
+                      "byte": 455
+                    }
+                  }
+                },
+                "error_message": {
+                  "kind": "string",
+                  "literal": "region required",
+                  "range": {
+                    "source_id": "main.tf",
+                    "path": "main.tf",
+                    "start": {
+                      "line": 20,
+                      "column": 23,
+                      "byte": 478
+                    },
+                    "end": {
+                      "line": 20,
+                      "column": 40,
+                      "byte": 495
+                    }
+                  }
+                },
+                "references": [
+                  {
+                    "traversal": "var.region",
+                    "subject": "var.region",
+                    "range": {
+                      "source_id": "main.tf",
+                      "path": "main.tf",
+                      "start": {
+                        "line": 19,
+                        "column": 23,
+                        "byte": 439
+                      },
+                      "end": {
+                        "line": 19,
+                        "column": 33,
+                        "byte": 449
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 18,
+                    "column": 5,
+                    "byte": 402
+                  },
+                  "end": {
+                    "line": 18,
+                    "column": 17,
+                    "byte": 414
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 12,
+                "column": 3,
+                "byte": 233
+              },
+              "end": {
+                "line": 12,
+                "column": 12,
+                "byte": 242
+              }
+            }
+          },
+          "depends_on": [
+            {
+              "traversal": "data.aws_ami.base",
+              "subject": "data.aws_ami",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 9,
+                  "column": 5,
+                  "byte": 207
+                },
+                "end": {
+                  "line": 9,
+                  "column": 22,
+                  "byte": 224
+                }
+              }
+            }
+          ],
+          "count": {
+            "kind": "expression",
+            "expression": "length(var.names)",
+            "references": [
+              {
+                "traversal": "var.names",
+                "subject": "var.names",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 6,
+                    "column": 21,
+                    "byte": 174
+                  },
+                  "end": {
+                    "line": 6,
+                    "column": 30,
+                    "byte": 183
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 6,
+                "column": 14,
+                "byte": 167
+              },
+              "end": {
+                "line": 6,
+                "column": 31,
+                "byte": 184
+              }
+            }
+          },
+          "references": [
+            {
+              "traversal": "data.aws_ami.base.id",
+              "subject": "data.aws_ami",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 3,
+                  "column": 14,
+                  "byte": 67
+                },
+                "end": {
+                  "line": 3,
+                  "column": 34,
+                  "byte": 87
+                }
+              }
+            },
+            {
+              "traversal": "local.service_name",
+              "subject": "local.service_name",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 4,
+                  "column": 14,
+                  "byte": 101
+                },
+                "end": {
+                  "line": 4,
+                  "column": 32,
+                  "byte": 119
+                }
+              }
+            },
+            {
+              "traversal": "var.names",
+              "subject": "var.names",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 6,
+                  "column": 21,
+                  "byte": 174
+                },
+                "end": {
+                  "line": 6,
+                  "column": 30,
+                  "byte": 183
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 30,
+              "byte": 29
+            }
+          }
+        },
+        {
+          "address": "aws_security_group.web",
+          "type": "aws_security_group",
+          "name": "web",
+          "config": [
+            {
+              "path": "name",
+              "value": {
+                "kind": "expression",
+                "expression": "each.value",
+                "references": [
+                  {
+                    "traversal": "each.value",
+                    "subject": "each.value",
+                    "range": {
+                      "source_id": "main.tf",
+                      "path": "main.tf",
+                      "start": {
+                        "line": 27,
+                        "column": 14,
+                        "byte": 590
+                      },
+                      "end": {
+                        "line": 27,
+                        "column": 24,
+                        "byte": 600
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 27,
+                    "column": 14,
+                    "byte": 590
+                  },
+                  "end": {
+                    "line": 27,
+                    "column": 24,
+                    "byte": 600
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 27,
+                  "column": 3,
+                  "byte": 579
+                },
+                "end": {
+                  "line": 27,
+                  "column": 24,
+                  "byte": 600
+                }
+              }
+            }
+          ],
+          "for_each": {
+            "kind": "expression",
+            "expression": "toset(var.names)",
+            "references": [
+              {
+                "traversal": "var.names",
+                "subject": "var.names",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 26,
+                    "column": 20,
+                    "byte": 566
+                  },
+                  "end": {
+                    "line": 26,
+                    "column": 29,
+                    "byte": 575
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 26,
+                "column": 14,
+                "byte": 560
+              },
+              "end": {
+                "line": 26,
+                "column": 30,
+                "byte": 576
+              }
+            }
+          },
+          "references": [
+            {
+              "traversal": "each.value",
+              "subject": "each.value",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 27,
+                  "column": 14,
+                  "byte": 590
+                },
+                "end": {
+                  "line": 27,
+                  "column": 24,
+                  "byte": 600
+                }
+              }
+            },
+            {
+              "traversal": "var.names",
+              "subject": "var.names",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 26,
+                  "column": 20,
+                  "byte": 566
+                },
+                "end": {
+                  "line": 26,
+                  "column": 29,
+                  "byte": 575
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 25,
+              "column": 1,
+              "byte": 509
+            },
+            "end": {
+              "line": 25,
+              "column": 36,
+              "byte": 544
+            }
+          }
+        }
+      ],
+      "data_sources": [
+        {
+          "address": "data.aws_ami.base",
+          "type": "aws_ami",
+          "name": "base",
+          "config": [
+            {
+              "path": "most_recent",
+              "value": {
+                "kind": "bool",
+                "literal": true,
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 31,
+                    "column": 17,
+                    "byte": 644
+                  },
+                  "end": {
+                    "line": 31,
+                    "column": 21,
+                    "byte": 648
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 31,
+                  "column": 3,
+                  "byte": 630
+                },
+                "end": {
+                  "line": 31,
+                  "column": 21,
+                  "byte": 648
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 30,
+              "column": 1,
+              "byte": 604
+            },
+            "end": {
+              "line": 30,
+              "column": 22,
+              "byte": 625
+            }
+          }
+        }
+      ],
+      "module_calls": [
+        {
+          "address": "module.registry",
+          "name": "registry",
+          "source": {
+            "kind": "string",
+            "literal": "hashicorp/consul/aws",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 35,
+                "column": 12,
+                "byte": 683
+              },
+              "end": {
+                "line": 35,
+                "column": 34,
+                "byte": 705
+              }
+            }
+          },
+          "inputs": [
+            {
+              "path": "name",
+              "value": {
+                "kind": "expression",
+                "expression": "local.service_name",
+                "references": [
+                  {
+                    "traversal": "local.service_name",
+                    "subject": "local.service_name",
+                    "range": {
+                      "source_id": "main.tf",
+                      "path": "main.tf",
+                      "start": {
+                        "line": 41,
+                        "column": 16,
+                        "byte": 762
+                      },
+                      "end": {
+                        "line": 41,
+                        "column": 34,
+                        "byte": 780
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 41,
+                    "column": 16,
+                    "byte": 762
+                  },
+                  "end": {
+                    "line": 41,
+                    "column": 34,
+                    "byte": 780
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 41,
+                  "column": 3,
+                  "byte": 749
+                },
+                "end": {
+                  "line": 41,
+                  "column": 34,
+                  "byte": 780
+                }
+              }
+            }
+          ],
+          "provider_mappings": [
+            {
+              "child_name": "aws",
+              "provider": {
+                "local_name": "aws",
+                "alias": "west",
+                "address": "provider.aws.west",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 38,
+                    "column": 11,
+                    "byte": 733
+                  },
+                  "end": {
+                    "line": 38,
+                    "column": 19,
+                    "byte": 741
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 38,
+                  "column": 5,
+                  "byte": 727
+                },
+                "end": {
+                  "line": 38,
+                  "column": 8,
+                  "byte": 730
+                }
+              }
+            }
+          ],
+          "depends_on": [
+            {
+              "traversal": "aws_security_group.web",
+              "subject": "aws_security_group.web",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 42,
+                  "column": 17,
+                  "byte": 797
+                },
+                "end": {
+                  "line": 42,
+                  "column": 39,
+                  "byte": 819
+                }
+              }
+            }
+          ],
+          "for_each": {
+            "kind": "expression",
+            "expression": "toset(var.names)",
+            "references": [
+              {
+                "traversal": "var.names",
+                "subject": "var.names",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 43,
+                    "column": 22,
+                    "byte": 842
+                  },
+                  "end": {
+                    "line": 43,
+                    "column": 31,
+                    "byte": 851
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 43,
+                "column": 16,
+                "byte": 836
+              },
+              "end": {
+                "line": 43,
+                "column": 32,
+                "byte": 852
+              }
+            }
+          },
+          "references": [
+            {
+              "traversal": "local.service_name",
+              "subject": "local.service_name",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 41,
+                  "column": 16,
+                  "byte": 762
+                },
+                "end": {
+                  "line": 41,
+                  "column": 34,
+                  "byte": 780
+                }
+              }
+            },
+            {
+              "traversal": "var.names",
+              "subject": "var.names",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 43,
+                  "column": 22,
+                  "byte": 842
+                },
+                "end": {
+                  "line": 43,
+                  "column": 31,
+                  "byte": 851
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 34,
+              "column": 1,
+              "byte": 652
+            },
+            "end": {
+              "line": 34,
+              "column": 18,
+              "byte": 669
+            }
+          }
+        }
+      ],
+      "moved": [
+        {
+          "from": "aws_instance.old",
+          "to": "aws_instance.web",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 46,
+              "column": 1,
+              "byte": 856
+            },
+            "end": {
+              "line": 46,
+              "column": 6,
+              "byte": 861
+            }
+          }
+        }
+      ],
+      "imports": [
+        {
+          "to": "aws_instance.web",
+          "id": {
+            "kind": "string",
+            "literal": "i-123",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 53,
+                "column": 14,
+                "byte": 971
+              },
+              "end": {
+                "line": 53,
+                "column": 21,
+                "byte": 978
+              }
+            }
+          },
+          "provider": {
+            "local_name": "aws",
+            "alias": "west",
+            "address": "provider.aws.west",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 54,
+                "column": 14,
+                "byte": 992
+              },
+              "end": {
+                "line": 54,
+                "column": 22,
+                "byte": 1000
+              }
+            }
+          },
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 51,
+              "column": 1,
+              "byte": 919
+            },
+            "end": {
+              "line": 51,
+              "column": 7,
+              "byte": 925
+            }
+          }
+        }
+      ],
+      "removed": [
+        {
+          "from": "aws_instance.gone",
+          "lifecycle": {
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 60,
+                "column": 3,
+                "byte": 1044
+              },
+              "end": {
+                "line": 60,
+                "column": 12,
+                "byte": 1053
+              }
+            }
+          },
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 57,
+              "column": 1,
+              "byte": 1004
+            },
+            "end": {
+              "line": 57,
+              "column": 8,
+              "byte": 1011
+            }
+          }
+        }
+      ],
+      "checks": [
+        {
+          "name": "health",
+          "assertions": [
+            {
+              "condition": {
+                "kind": "expression",
+                "expression": "data.aws_ami.base.id != \"\"",
+                "references": [
+                  {
+                    "traversal": "data.aws_ami.base.id",
+                    "subject": "data.aws_ami",
+                    "range": {
+                      "source_id": "main.tf",
+                      "path": "main.tf",
+                      "start": {
+                        "line": 67,
+                        "column": 21,
+                        "byte": 1131
+                      },
+                      "end": {
+                        "line": 67,
+                        "column": 41,
+                        "byte": 1151
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 67,
+                    "column": 21,
+                    "byte": 1131
+                  },
+                  "end": {
+                    "line": 67,
+                    "column": 47,
+                    "byte": 1157
+                  }
+                }
+              },
+              "error_message": {
+                "kind": "string",
+                "literal": "AMI missing",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 68,
+                    "column": 21,
+                    "byte": 1178
+                  },
+                  "end": {
+                    "line": 68,
+                    "column": 34,
+                    "byte": 1191
+                  }
+                }
+              },
+              "references": [
+                {
+                  "traversal": "data.aws_ami.base.id",
+                  "subject": "data.aws_ami",
+                  "range": {
+                    "source_id": "main.tf",
+                    "path": "main.tf",
+                    "start": {
+                      "line": 67,
+                      "column": 21,
+                      "byte": 1131
+                    },
+                    "end": {
+                      "line": 67,
+                      "column": 41,
+                      "byte": 1151
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 66,
+                  "column": 3,
+                  "byte": 1102
+                },
+                "end": {
+                  "line": 66,
+                  "column": 9,
+                  "byte": 1108
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 65,
+              "column": 1,
+              "byte": 1083
+            },
+            "end": {
+              "line": 65,
+              "column": 15,
+              "byte": 1097
+            }
+          }
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/main.tftest.hcl",
+          "runs": [
+            {
+              "name": "plan_core",
+              "command": "plan",
+              "variables": [
+                {
+                  "path": "region",
+                  "value": {
+                    "kind": "string",
+                    "literal": "us-west-2",
+                    "range": {
+                      "source_id": "tests/main.tftest.hcl",
+                      "path": "tests/main.tftest.hcl",
+                      "start": {
+                        "line": 5,
+                        "column": 14,
+                        "byte": 63
+                      },
+                      "end": {
+                        "line": 5,
+                        "column": 25,
+                        "byte": 74
+                      }
+                    }
+                  },
+                  "range": {
+                    "source_id": "tests/main.tftest.hcl",
+                    "path": "tests/main.tftest.hcl",
+                    "start": {
+                      "line": 5,
+                      "column": 5,
+                      "byte": 54
+                    },
+                    "end": {
+                      "line": 5,
+                      "column": 25,
+                      "byte": 74
+                    }
+                  }
+                }
+              ],
+              "assertions": [
+                {
+                  "condition": {
+                    "kind": "expression",
+                    "expression": "output.service_name != \"\"",
+                    "references": [
+                      {
+                        "traversal": "output.service_name",
+                        "subject": "output.service_name",
+                        "range": {
+                          "source_id": "tests/main.tftest.hcl",
+                          "path": "tests/main.tftest.hcl",
+                          "start": {
+                            "line": 9,
+                            "column": 21,
+                            "byte": 111
+                          },
+                          "end": {
+                            "line": 9,
+                            "column": 40,
+                            "byte": 130
+                          }
+                        }
+                      }
+                    ],
+                    "range": {
+                      "source_id": "tests/main.tftest.hcl",
+                      "path": "tests/main.tftest.hcl",
+                      "start": {
+                        "line": 9,
+                        "column": 21,
+                        "byte": 111
+                      },
+                      "end": {
+                        "line": 9,
+                        "column": 46,
+                        "byte": 136
+                      }
+                    }
+                  },
+                  "error_message": {
+                    "kind": "string",
+                    "literal": "missing service name",
+                    "range": {
+                      "source_id": "tests/main.tftest.hcl",
+                      "path": "tests/main.tftest.hcl",
+                      "start": {
+                        "line": 10,
+                        "column": 21,
+                        "byte": 157
+                      },
+                      "end": {
+                        "line": 10,
+                        "column": 43,
+                        "byte": 179
+                      }
+                    }
+                  },
+                  "references": [
+                    {
+                      "traversal": "output.service_name",
+                      "subject": "output.service_name",
+                      "range": {
+                        "source_id": "tests/main.tftest.hcl",
+                        "path": "tests/main.tftest.hcl",
+                        "start": {
+                          "line": 9,
+                          "column": 21,
+                          "byte": 111
+                        },
+                        "end": {
+                          "line": 9,
+                          "column": 40,
+                          "byte": 130
+                        }
+                      }
+                    }
+                  ],
+                  "range": {
+                    "source_id": "tests/main.tftest.hcl",
+                    "path": "tests/main.tftest.hcl",
+                    "start": {
+                      "line": 8,
+                      "column": 3,
+                      "byte": 82
+                    },
+                    "end": {
+                      "line": 8,
+                      "column": 9,
+                      "byte": 88
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "source_id": "tests/main.tftest.hcl",
+                "path": "tests/main.tftest.hcl",
+                "start": {
+                  "line": 1,
+                  "column": 1
+                },
+                "end": {
+                  "line": 1,
+                  "column": 16,
+                  "byte": 15
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "unexpected_lifecycle_block",
+          "summary": "Unexpected \"lifecycle\" block",
+          "detail": "Blocks are not allowed here.",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 12,
+              "column": 3,
+              "byte": 233
+            },
+            "end": {
+              "line": 12,
+              "column": 12,
+              "byte": 242
+            }
+          }
+        },
+        {
+          "severity": "error",
+          "code": "unexpected_precondition_block",
+          "summary": "Unexpected \"precondition\" block",
+          "detail": "Blocks are not allowed here.",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 18,
+              "column": 5,
+              "byte": 402
+            },
+            "end": {
+              "line": 18,
+              "column": 17,
+              "byte": 414
+            }
+          }
+        },
+        {
+          "severity": "error",
+          "code": "unexpected_variables_block",
+          "summary": "Unexpected \"variables\" block",
+          "detail": "Blocks are not allowed here.",
+          "range": {
+            "source_id": "tests/main.tftest.hcl",
+            "path": "tests/main.tftest.hcl",
+            "start": {
+              "line": 4,
+              "column": 3,
+              "byte": 38
+            },
+            "end": {
+              "line": 4,
+              "column": 12,
+              "byte": 47
+            }
+          }
+        }
+      ]
+    },
+    {
+      "address": "module.registry",
+      "source": {
+        "kind": "string",
+        "literal": "hashicorp/consul/aws",
+        "range": {
+          "source_id": "main.tf",
+          "path": "main.tf",
+          "start": {
+            "line": 35,
+            "column": 12,
+            "byte": 683
+          },
+          "end": {
+            "line": 35,
+            "column": 34,
+            "byte": 705
+          }
+        }
+      },
+      "dir": "",
+      "status": "remote",
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "module_source_remote",
+          "summary": "Module source requires external retrieval",
+          "detail": "Module source \"hashicorp/consul/aws\" is registry, remote, or downloader-backed and was not loaded. The static loader does not run init or downloader steps.",
+          "module_address": "module.registry",
+          "address": "module.registry",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 35,
+              "column": 12,
+              "byte": 683
+            },
+            "end": {
+              "line": 35,
+              "column": 34,
+              "byte": 705
+            }
+          }
+        }
+      ],
+      "range": {
+        "source_id": "main.tf",
+        "path": "main.tf",
+        "start": {
+          "line": 34,
+          "column": 1,
+          "byte": 652
+        },
+        "end": {
+          "line": 34,
+          "column": 18,
+          "byte": 669
+        }
+      }
+    }
+  ]
+}

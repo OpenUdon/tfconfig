@@ -1,0 +1,10 @@
+{
+  "resource": {
+    "example_resource": {
+      "main": {
+        "a": "base-a",
+        "b": "base-b"
+      }
+    }
+  }
+}

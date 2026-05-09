@@ -1,0 +1,3 @@
+variable "choice" {
+  default = "tf"
+}

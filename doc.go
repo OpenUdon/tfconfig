@@ -7,8 +7,8 @@
 //
 // LoadDir is the public local-static loader entrypoint. It loads .tf, .tofu,
 // .tf.json, .tofu.json, override, and test files from a root module directory
-// without loading child module directories, downloading modules, or executing
-// Terraform/OpenTofu.
+// and recursively loads direct readable local child modules without downloading
+// modules or executing Terraform/OpenTofu.
 //
 // The package is intentionally static analysis only. It must not execute
 // provider plugins, initialize backends, load state, refresh, plan, or apply.

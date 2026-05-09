@@ -1,0 +1,260 @@
+{
+  "version": "tfconfig.static.v1",
+  "producer": "github.com/OpenUdon/tfconfig",
+  "root_dir": "testdata/fixtures/formats-overrides/input",
+  "source_roots": [
+    {
+      "id": "root",
+      "module_address": "",
+      "dir": "testdata/fixtures/formats-overrides/input"
+    }
+  ],
+  "source_files": [
+    {
+      "id": "choice.tofu",
+      "module_address": "",
+      "path": "choice.tofu",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "main.tf.json",
+      "module_address": "",
+      "path": "main.tf.json",
+      "format": "json",
+      "role": "primary"
+    },
+    {
+      "id": "outputs.tofu.json",
+      "module_address": "",
+      "path": "outputs.tofu.json",
+      "format": "json",
+      "role": "primary"
+    },
+    {
+      "id": "override.tf",
+      "module_address": "",
+      "path": "override.tf",
+      "format": "hcl",
+      "role": "override"
+    }
+  ],
+  "modules": [
+    {
+      "address": "",
+      "dir": ".",
+      "status": "root",
+      "source_files": [
+        "choice.tofu",
+        "main.tf.json",
+        "outputs.tofu.json",
+        "override.tf"
+      ],
+      "variables": [
+        {
+          "name": "choice",
+          "default": {
+            "kind": "string",
+            "literal": "tofu",
+            "range": {
+              "source_id": "choice.tofu",
+              "path": "choice.tofu",
+              "start": {
+                "line": 2,
+                "column": 13,
+                "byte": 32
+              },
+              "end": {
+                "line": 2,
+                "column": 19,
+                "byte": 38
+              }
+            }
+          },
+          "range": {
+            "source_id": "choice.tofu",
+            "path": "choice.tofu",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 18,
+              "byte": 17
+            }
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "choice",
+          "value": {
+            "kind": "string",
+            "literal": "${var.choice}",
+            "references": [
+              {
+                "traversal": "var.choice",
+                "subject": "var.choice",
+                "range": {
+                  "source_id": "outputs.tofu.json",
+                  "path": "outputs.tofu.json",
+                  "start": {
+                    "line": 4,
+                    "column": 19,
+                    "byte": 50
+                  },
+                  "end": {
+                    "line": 4,
+                    "column": 29,
+                    "byte": 60
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "outputs.tofu.json",
+              "path": "outputs.tofu.json",
+              "start": {
+                "line": 4,
+                "column": 16,
+                "byte": 47
+              },
+              "end": {
+                "line": 4,
+                "column": 31,
+                "byte": 62
+              }
+            }
+          },
+          "references": [
+            {
+              "traversal": "var.choice",
+              "subject": "var.choice",
+              "range": {
+                "source_id": "outputs.tofu.json",
+                "path": "outputs.tofu.json",
+                "start": {
+                  "line": 4,
+                  "column": 19,
+                  "byte": 50
+                },
+                "end": {
+                  "line": 4,
+                  "column": 29,
+                  "byte": 60
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "outputs.tofu.json",
+            "path": "outputs.tofu.json",
+            "start": {
+              "line": 3,
+              "column": 15,
+              "byte": 30
+            },
+            "end": {
+              "line": 3,
+              "column": 16,
+              "byte": 31
+            }
+          }
+        }
+      ],
+      "resources": [
+        {
+          "address": "example_resource.main",
+          "type": "example_resource",
+          "name": "main",
+          "config": [
+            {
+              "path": "a",
+              "value": {
+                "kind": "string",
+                "literal": "base-a",
+                "range": {
+                  "source_id": "main.tf.json",
+                  "path": "main.tf.json",
+                  "start": {
+                    "line": 5,
+                    "column": 14,
+                    "byte": 73
+                  },
+                  "end": {
+                    "line": 5,
+                    "column": 22,
+                    "byte": 81
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf.json",
+                "path": "main.tf.json",
+                "start": {
+                  "line": 5,
+                  "column": 9,
+                  "byte": 68
+                },
+                "end": {
+                  "line": 5,
+                  "column": 22,
+                  "byte": 81
+                }
+              }
+            },
+            {
+              "path": "b",
+              "value": {
+                "kind": "string",
+                "literal": "override-b",
+                "range": {
+                  "source_id": "override.tf",
+                  "path": "override.tf",
+                  "start": {
+                    "line": 2,
+                    "column": 7,
+                    "byte": 43
+                  },
+                  "end": {
+                    "line": 2,
+                    "column": 19,
+                    "byte": 55
+                  }
+                }
+              },
+              "range": {
+                "source_id": "override.tf",
+                "path": "override.tf",
+                "start": {
+                  "line": 2,
+                  "column": 3,
+                  "byte": 39
+                },
+                "end": {
+                  "line": 2,
+                  "column": 19,
+                  "byte": 55
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "override.tf",
+            "path": "override.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 35,
+              "byte": 34
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

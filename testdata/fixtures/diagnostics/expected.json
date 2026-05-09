@@ -1,0 +1,445 @@
+{
+  "version": "tfconfig.static.v1",
+  "producer": "github.com/OpenUdon/tfconfig",
+  "root_dir": "testdata/fixtures/diagnostics/input",
+  "source_roots": [
+    {
+      "id": "root",
+      "module_address": "",
+      "dir": "testdata/fixtures/diagnostics/input"
+    }
+  ],
+  "source_files": [
+    {
+      "id": "bad.tf",
+      "module_address": "",
+      "path": "bad.tf",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "main.tf",
+      "module_address": "",
+      "path": "main.tf",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "orphan_override.tf",
+      "module_address": "",
+      "path": "orphan_override.tf",
+      "format": "hcl",
+      "role": "override"
+    }
+  ],
+  "modules": [
+    {
+      "address": "",
+      "dir": ".",
+      "status": "root",
+      "source_files": [
+        "bad.tf",
+        "main.tf",
+        "orphan_override.tf"
+      ],
+      "variables": [
+        {
+          "name": "name",
+          "default": {
+            "kind": "string",
+            "literal": "first",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 2,
+                "column": 13,
+                "byte": 30
+              },
+              "end": {
+                "line": 2,
+                "column": 20,
+                "byte": 37
+              }
+            }
+          },
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 16,
+              "byte": 15
+            }
+          }
+        }
+      ],
+      "resources": [
+        {
+          "address": "example_resource.main",
+          "type": "example_resource",
+          "name": "main",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 9,
+              "column": 1,
+              "byte": 83
+            },
+            "end": {
+              "line": 9,
+              "column": 35,
+              "byte": 117
+            }
+          }
+        }
+      ],
+      "module_calls": [
+        {
+          "address": "module.bare",
+          "name": "bare",
+          "source": {
+            "kind": "string",
+            "literal": ".",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 20,
+                "column": 12,
+                "byte": 243
+              },
+              "end": {
+                "line": 20,
+                "column": 15,
+                "byte": 246
+              }
+            }
+          },
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 19,
+              "column": 1,
+              "byte": 216
+            },
+            "end": {
+              "line": 19,
+              "column": 14,
+              "byte": 229
+            }
+          }
+        },
+        {
+          "address": "module.symbolic",
+          "name": "symbolic",
+          "source": {
+            "kind": "expression",
+            "expression": "var.module_source",
+            "references": [
+              {
+                "traversal": "var.module_source",
+                "subject": "var.module_source",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 16,
+                    "column": 12,
+                    "byte": 195
+                  },
+                  "end": {
+                    "line": 16,
+                    "column": 29,
+                    "byte": 212
+                  }
+                }
+              }
+            ],
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 16,
+                "column": 12,
+                "byte": 195
+              },
+              "end": {
+                "line": 16,
+                "column": 29,
+                "byte": 212
+              }
+            }
+          },
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 15,
+              "column": 1,
+              "byte": 164
+            },
+            "end": {
+              "line": 15,
+              "column": 18,
+              "byte": 181
+            }
+          }
+        }
+      ],
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "duplicate_declaration",
+          "summary": "Duplicate declaration",
+          "detail": "Duplicate variable \"name\" was ignored.",
+          "address": "name",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 5,
+              "column": 1,
+              "byte": 41
+            },
+            "end": {
+              "line": 5,
+              "column": 16,
+              "byte": 56
+            }
+          }
+        },
+        {
+          "severity": "error",
+          "code": "missing_base_override",
+          "summary": "Missing base declaration for override",
+          "detail": "There is no resource \"example_resource.missing\" for this override file declaration to override.",
+          "address": "example_resource.missing",
+          "range": {
+            "source_id": "orphan_override.tf",
+            "path": "orphan_override.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 38,
+              "byte": 37
+            }
+          }
+        },
+        {
+          "severity": "error",
+          "code": "missing_name_for_resource",
+          "summary": "Missing name for resource",
+          "detail": "All resource blocks must have 2 labels (type, name).",
+          "range": {
+            "source_id": "bad.tf",
+            "path": "bad.tf",
+            "start": {
+              "line": 1,
+              "column": 16,
+              "byte": 15
+            },
+            "end": {
+              "line": 1,
+              "column": 17,
+              "byte": 16
+            }
+          }
+        },
+        {
+          "severity": "error",
+          "code": "unexpected_nested_block",
+          "summary": "Unexpected \"nested\" block",
+          "detail": "Blocks are not allowed here.",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 10,
+              "column": 3,
+              "byte": 122
+            },
+            "end": {
+              "line": 10,
+              "column": 9,
+              "byte": 128
+            }
+          }
+        }
+      ]
+    },
+    {
+      "address": "module.bare",
+      "source": {
+        "kind": "string",
+        "literal": ".",
+        "range": {
+          "source_id": "main.tf",
+          "path": "main.tf",
+          "start": {
+            "line": 20,
+            "column": 12,
+            "byte": 243
+          },
+          "end": {
+            "line": 20,
+            "column": 15,
+            "byte": 246
+          }
+        }
+      },
+      "dir": "",
+      "status": "unsupported",
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "module_source_unsupported",
+          "summary": "Module source is not statically loadable",
+          "detail": "Module source must use ./ or ../ to identify a local child module path.",
+          "module_address": "module.bare",
+          "address": "module.bare",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 20,
+              "column": 12,
+              "byte": 243
+            },
+            "end": {
+              "line": 20,
+              "column": 15,
+              "byte": 246
+            }
+          }
+        }
+      ],
+      "range": {
+        "source_id": "main.tf",
+        "path": "main.tf",
+        "start": {
+          "line": 19,
+          "column": 1,
+          "byte": 216
+        },
+        "end": {
+          "line": 19,
+          "column": 14,
+          "byte": 229
+        }
+      }
+    },
+    {
+      "address": "module.symbolic",
+      "source": {
+        "kind": "expression",
+        "expression": "var.module_source",
+        "references": [
+          {
+            "traversal": "var.module_source",
+            "subject": "var.module_source",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 16,
+                "column": 12,
+                "byte": 195
+              },
+              "end": {
+                "line": 16,
+                "column": 29,
+                "byte": 212
+              }
+            }
+          }
+        ],
+        "range": {
+          "source_id": "main.tf",
+          "path": "main.tf",
+          "start": {
+            "line": 16,
+            "column": 12,
+            "byte": 195
+          },
+          "end": {
+            "line": 16,
+            "column": 29,
+            "byte": 212
+          }
+        }
+      },
+      "dir": "",
+      "status": "unsupported",
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "module_source_unsupported",
+          "summary": "Module source is not statically loadable",
+          "detail": "Module source is an expression rather than a direct local filesystem path.",
+          "module_address": "module.symbolic",
+          "address": "module.symbolic",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 16,
+              "column": 12,
+              "byte": 195
+            },
+            "end": {
+              "line": 16,
+              "column": 29,
+              "byte": 212
+            }
+          }
+        }
+      ],
+      "range": {
+        "source_id": "main.tf",
+        "path": "main.tf",
+        "start": {
+          "line": 15,
+          "column": 1,
+          "byte": 164
+        },
+        "end": {
+          "line": 15,
+          "column": 18,
+          "byte": 181
+        }
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "unclosed_configuration_block",
+      "summary": "Unclosed configuration block",
+      "detail": "There is no closing brace for this block before the end of the file. This may be caused by incorrect brace nesting elsewhere in this file.",
+      "range": {
+        "source_id": "bad.tf",
+        "path": "bad.tf",
+        "start": {
+          "line": 1,
+          "column": 16,
+          "byte": 15
+        },
+        "end": {
+          "line": 1,
+          "column": 17,
+          "byte": 16
+        }
+      }
+    }
+  ]
+}

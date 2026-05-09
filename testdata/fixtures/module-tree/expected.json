@@ -1,0 +1,853 @@
+{
+  "version": "tfconfig.static.v1",
+  "producer": "github.com/OpenUdon/tfconfig",
+  "root_dir": "testdata/fixtures/module-tree/input",
+  "source_roots": [
+    {
+      "id": "module.child",
+      "module_address": "module.child",
+      "dir": "modules/child"
+    },
+    {
+      "id": "module.child.module.grandchild",
+      "module_address": "module.child.module.grandchild",
+      "dir": "modules/child/grandchild"
+    },
+    {
+      "id": "root",
+      "module_address": "",
+      "dir": "testdata/fixtures/module-tree/input"
+    }
+  ],
+  "source_files": [
+    {
+      "id": "main.tf",
+      "module_address": "",
+      "path": "main.tf",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "modules/child/main.tf",
+      "module_address": "module.child",
+      "path": "modules/child/main.tf",
+      "format": "hcl",
+      "role": "primary"
+    },
+    {
+      "id": "modules/child/grandchild/main.tf",
+      "module_address": "module.child.module.grandchild",
+      "path": "modules/child/grandchild/main.tf",
+      "format": "hcl",
+      "role": "primary"
+    }
+  ],
+  "modules": [
+    {
+      "address": "",
+      "dir": ".",
+      "status": "root",
+      "source_files": [
+        "main.tf"
+      ],
+      "provider_configs": [
+        {
+          "local_name": "aws",
+          "alias": "west",
+          "address": "provider.aws.west",
+          "config": [
+            {
+              "path": "region",
+              "value": {
+                "kind": "string",
+                "literal": "us-west-2",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 3,
+                    "column": 12,
+                    "byte": 46
+                  },
+                  "end": {
+                    "line": 3,
+                    "column": 23,
+                    "byte": 57
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 3,
+                  "column": 3,
+                  "byte": 37
+                },
+                "end": {
+                  "line": 3,
+                  "column": 23,
+                  "byte": 57
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 15,
+              "byte": 14
+            }
+          }
+        }
+      ],
+      "variables": [
+        {
+          "name": "name",
+          "default": {
+            "kind": "string",
+            "literal": "app",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 31,
+                "column": 13,
+                "byte": 430
+              },
+              "end": {
+                "line": 31,
+                "column": 18,
+                "byte": 435
+              }
+            }
+          },
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 30,
+              "column": 1,
+              "byte": 400
+            },
+            "end": {
+              "line": 30,
+              "column": 16,
+              "byte": 415
+            }
+          }
+        }
+      ],
+      "resources": [
+        {
+          "address": "aws_security_group.root",
+          "type": "aws_security_group",
+          "name": "root",
+          "config": [
+            {
+              "path": "name",
+              "value": {
+                "kind": "string",
+                "literal": "root",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 27,
+                    "column": 10,
+                    "byte": 390
+                  },
+                  "end": {
+                    "line": 27,
+                    "column": 16,
+                    "byte": 396
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 27,
+                  "column": 3,
+                  "byte": 383
+                },
+                "end": {
+                  "line": 27,
+                  "column": 16,
+                  "byte": 396
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 26,
+              "column": 1,
+              "byte": 342
+            },
+            "end": {
+              "line": 26,
+              "column": 37,
+              "byte": 378
+            }
+          }
+        }
+      ],
+      "module_calls": [
+        {
+          "address": "module.child",
+          "name": "child",
+          "source": {
+            "kind": "string",
+            "literal": "./modules/child",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 7,
+                "column": 12,
+                "byte": 89
+              },
+              "end": {
+                "line": 7,
+                "column": 29,
+                "byte": 106
+              }
+            }
+          },
+          "inputs": [
+            {
+              "path": "name",
+              "value": {
+                "kind": "expression",
+                "expression": "var.name",
+                "references": [
+                  {
+                    "traversal": "var.name",
+                    "subject": "var.name",
+                    "range": {
+                      "source_id": "main.tf",
+                      "path": "main.tf",
+                      "start": {
+                        "line": 13,
+                        "column": 16,
+                        "byte": 163
+                      },
+                      "end": {
+                        "line": 13,
+                        "column": 24,
+                        "byte": 171
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 13,
+                    "column": 16,
+                    "byte": 163
+                  },
+                  "end": {
+                    "line": 13,
+                    "column": 24,
+                    "byte": 171
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 13,
+                  "column": 3,
+                  "byte": 150
+                },
+                "end": {
+                  "line": 13,
+                  "column": 24,
+                  "byte": 171
+                }
+              }
+            }
+          ],
+          "provider_mappings": [
+            {
+              "child_name": "aws",
+              "provider": {
+                "local_name": "aws",
+                "alias": "west",
+                "address": "provider.aws.west",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 10,
+                    "column": 11,
+                    "byte": 134
+                  },
+                  "end": {
+                    "line": 10,
+                    "column": 19,
+                    "byte": 142
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 10,
+                  "column": 5,
+                  "byte": 128
+                },
+                "end": {
+                  "line": 10,
+                  "column": 8,
+                  "byte": 131
+                }
+              }
+            }
+          ],
+          "depends_on": [
+            {
+              "traversal": "aws_security_group.root",
+              "subject": "aws_security_group.root",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 15,
+                  "column": 17,
+                  "byte": 205
+                },
+                "end": {
+                  "line": 15,
+                  "column": 40,
+                  "byte": 228
+                }
+              }
+            }
+          ],
+          "count": {
+            "kind": "number",
+            "literal": 1,
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 14,
+                "column": 16,
+                "byte": 187
+              },
+              "end": {
+                "line": 14,
+                "column": 17,
+                "byte": 188
+              }
+            }
+          },
+          "references": [
+            {
+              "traversal": "var.name",
+              "subject": "var.name",
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 13,
+                  "column": 16,
+                  "byte": 163
+                },
+                "end": {
+                  "line": 13,
+                  "column": 24,
+                  "byte": 171
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 6,
+              "column": 1,
+              "byte": 61
+            },
+            "end": {
+              "line": 6,
+              "column": 15,
+              "byte": 75
+            }
+          }
+        },
+        {
+          "address": "module.git",
+          "name": "git",
+          "source": {
+            "kind": "string",
+            "literal": "git::https://example.com/mod.git",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 23,
+                "column": 12,
+                "byte": 304
+              },
+              "end": {
+                "line": 23,
+                "column": 46,
+                "byte": 338
+              }
+            }
+          },
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 22,
+              "column": 1,
+              "byte": 278
+            },
+            "end": {
+              "line": 22,
+              "column": 13,
+              "byte": 290
+            }
+          }
+        },
+        {
+          "address": "module.missing",
+          "name": "missing",
+          "source": {
+            "kind": "string",
+            "literal": "./missing",
+            "range": {
+              "source_id": "main.tf",
+              "path": "main.tf",
+              "start": {
+                "line": 19,
+                "column": 12,
+                "byte": 263
+              },
+              "end": {
+                "line": 19,
+                "column": 23,
+                "byte": 274
+              }
+            }
+          },
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 18,
+              "column": 1,
+              "byte": 233
+            },
+            "end": {
+              "line": 18,
+              "column": 17,
+              "byte": 249
+            }
+          }
+        }
+      ]
+    },
+    {
+      "address": "module.child",
+      "source": {
+        "kind": "string",
+        "literal": "./modules/child",
+        "range": {
+          "source_id": "main.tf",
+          "path": "main.tf",
+          "start": {
+            "line": 7,
+            "column": 12,
+            "byte": 89
+          },
+          "end": {
+            "line": 7,
+            "column": 29,
+            "byte": 106
+          }
+        }
+      },
+      "dir": "modules/child",
+      "status": "loaded",
+      "source_files": [
+        "modules/child/main.tf"
+      ],
+      "variables": [
+        {
+          "name": "name",
+          "range": {
+            "source_id": "modules/child/main.tf",
+            "path": "modules/child/main.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 16,
+              "byte": 15
+            }
+          }
+        }
+      ],
+      "resources": [
+        {
+          "address": "example_child.main",
+          "type": "example_child",
+          "name": "main",
+          "config": [
+            {
+              "path": "name",
+              "value": {
+                "kind": "expression",
+                "expression": "var.name",
+                "references": [
+                  {
+                    "traversal": "var.name",
+                    "subject": "var.name",
+                    "range": {
+                      "source_id": "modules/child/main.tf",
+                      "path": "modules/child/main.tf",
+                      "start": {
+                        "line": 4,
+                        "column": 10,
+                        "byte": 63
+                      },
+                      "end": {
+                        "line": 4,
+                        "column": 18,
+                        "byte": 71
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "source_id": "modules/child/main.tf",
+                  "path": "modules/child/main.tf",
+                  "start": {
+                    "line": 4,
+                    "column": 10,
+                    "byte": 63
+                  },
+                  "end": {
+                    "line": 4,
+                    "column": 18,
+                    "byte": 71
+                  }
+                }
+              },
+              "range": {
+                "source_id": "modules/child/main.tf",
+                "path": "modules/child/main.tf",
+                "start": {
+                  "line": 4,
+                  "column": 3,
+                  "byte": 56
+                },
+                "end": {
+                  "line": 4,
+                  "column": 18,
+                  "byte": 71
+                }
+              }
+            }
+          ],
+          "references": [
+            {
+              "traversal": "var.name",
+              "subject": "var.name",
+              "range": {
+                "source_id": "modules/child/main.tf",
+                "path": "modules/child/main.tf",
+                "start": {
+                  "line": 4,
+                  "column": 10,
+                  "byte": 63
+                },
+                "end": {
+                  "line": 4,
+                  "column": 18,
+                  "byte": 71
+                }
+              }
+            }
+          ],
+          "range": {
+            "source_id": "modules/child/main.tf",
+            "path": "modules/child/main.tf",
+            "start": {
+              "line": 3,
+              "column": 1,
+              "byte": 20
+            },
+            "end": {
+              "line": 3,
+              "column": 32,
+              "byte": 51
+            }
+          }
+        }
+      ],
+      "module_calls": [
+        {
+          "address": "module.child.module.grandchild",
+          "name": "grandchild",
+          "source": {
+            "kind": "string",
+            "literal": "./grandchild",
+            "range": {
+              "source_id": "modules/child/main.tf",
+              "path": "modules/child/main.tf",
+              "start": {
+                "line": 8,
+                "column": 14,
+                "byte": 110
+              },
+              "end": {
+                "line": 8,
+                "column": 28,
+                "byte": 124
+              }
+            }
+          },
+          "for_each": {
+            "kind": "expression",
+            "expression": "toset([\"one\"])",
+            "range": {
+              "source_id": "modules/child/main.tf",
+              "path": "modules/child/main.tf",
+              "start": {
+                "line": 9,
+                "column": 14,
+                "byte": 138
+              },
+              "end": {
+                "line": 9,
+                "column": 28,
+                "byte": 152
+              }
+            }
+          },
+          "range": {
+            "source_id": "modules/child/main.tf",
+            "path": "modules/child/main.tf",
+            "start": {
+              "line": 7,
+              "column": 1,
+              "byte": 75
+            },
+            "end": {
+              "line": 7,
+              "column": 20,
+              "byte": 94
+            }
+          }
+        }
+      ]
+    },
+    {
+      "address": "module.child.module.grandchild",
+      "source": {
+        "kind": "string",
+        "literal": "./grandchild",
+        "range": {
+          "source_id": "modules/child/main.tf",
+          "path": "modules/child/main.tf",
+          "start": {
+            "line": 8,
+            "column": 14,
+            "byte": 110
+          },
+          "end": {
+            "line": 8,
+            "column": 28,
+            "byte": 124
+          }
+        }
+      },
+      "dir": "modules/child/grandchild",
+      "parent_address": "module.child",
+      "status": "loaded",
+      "source_files": [
+        "modules/child/grandchild/main.tf"
+      ],
+      "outputs": [
+        {
+          "name": "ready",
+          "value": {
+            "kind": "bool",
+            "literal": true,
+            "range": {
+              "source_id": "modules/child/grandchild/main.tf",
+              "path": "modules/child/grandchild/main.tf",
+              "start": {
+                "line": 2,
+                "column": 11,
+                "byte": 27
+              },
+              "end": {
+                "line": 2,
+                "column": 15,
+                "byte": 31
+              }
+            }
+          },
+          "range": {
+            "source_id": "modules/child/grandchild/main.tf",
+            "path": "modules/child/grandchild/main.tf",
+            "start": {
+              "line": 1,
+              "column": 1
+            },
+            "end": {
+              "line": 1,
+              "column": 15,
+              "byte": 14
+            }
+          }
+        }
+      ]
+    },
+    {
+      "address": "module.git",
+      "source": {
+        "kind": "string",
+        "literal": "git::https://example.com/mod.git",
+        "range": {
+          "source_id": "main.tf",
+          "path": "main.tf",
+          "start": {
+            "line": 23,
+            "column": 12,
+            "byte": 304
+          },
+          "end": {
+            "line": 23,
+            "column": 46,
+            "byte": 338
+          }
+        }
+      },
+      "dir": "",
+      "status": "remote",
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "module_source_remote",
+          "summary": "Module source requires external retrieval",
+          "detail": "Module source \"git::https://example.com/mod.git\" is registry, remote, or downloader-backed and was not loaded. The static loader does not run init or downloader steps.",
+          "module_address": "module.git",
+          "address": "module.git",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 23,
+              "column": 12,
+              "byte": 304
+            },
+            "end": {
+              "line": 23,
+              "column": 46,
+              "byte": 338
+            }
+          }
+        }
+      ],
+      "range": {
+        "source_id": "main.tf",
+        "path": "main.tf",
+        "start": {
+          "line": 22,
+          "column": 1,
+          "byte": 278
+        },
+        "end": {
+          "line": 22,
+          "column": 13,
+          "byte": 290
+        }
+      }
+    },
+    {
+      "address": "module.missing",
+      "source": {
+        "kind": "string",
+        "literal": "./missing",
+        "range": {
+          "source_id": "main.tf",
+          "path": "main.tf",
+          "start": {
+            "line": 19,
+            "column": 12,
+            "byte": 263
+          },
+          "end": {
+            "line": 19,
+            "column": 23,
+            "byte": 274
+          }
+        }
+      },
+      "dir": "missing",
+      "status": "missing",
+      "diagnostics": [
+        {
+          "severity": "error",
+          "code": "module_source_missing",
+          "summary": "Local module source is not readable",
+          "detail": "Module source \"./missing\" resolved to missing, which does not exist or cannot be read.",
+          "module_address": "module.missing",
+          "address": "module.missing",
+          "range": {
+            "source_id": "main.tf",
+            "path": "main.tf",
+            "start": {
+              "line": 19,
+              "column": 12,
+              "byte": 263
+            },
+            "end": {
+              "line": 19,
+              "column": 23,
+              "byte": 274
+            }
+          }
+        }
+      ],
+      "range": {
+        "source_id": "main.tf",
+        "path": "main.tf",
+        "start": {
+          "line": 18,
+          "column": 1,
+          "byte": 233
+        },
+        "end": {
+          "line": 18,
+          "column": 17,
+          "byte": 249
+        }
+      }
+    }
+  ]
+}

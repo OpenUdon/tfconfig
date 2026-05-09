@@ -1,0 +1,7 @@
+{
+  "output": {
+    "choice": {
+      "value": "${var.choice}"
+    }
+  }
+}
