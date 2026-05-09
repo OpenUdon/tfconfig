@@ -163,6 +163,49 @@ variable "name" {}
 	}
 }
 
+func TestLoadDirRedactsNestedSensitiveCandidates(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+resource "example_resource" "main" {
+  config = {
+    password = "nested-secret-do-not-emit"
+    child = {
+      api_key = "nested-api-key-do-not-emit"
+    }
+  }
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	mod := requireModule(t, doc, "")
+	if len(mod.Resources) != 1 || len(mod.Resources[0].Config) != 1 {
+		t.Fatalf("resource config not decoded: %#v", mod.Resources)
+	}
+	value := mod.Resources[0].Config[0].Value
+	if value.SensitiveCandidate == nil {
+		t.Fatalf("nested sensitive candidate was not detected: %#v", value)
+	}
+	if got := value.SensitiveCandidate.AttributePath; got != "config.password" {
+		t.Fatalf("sensitive candidate path = %q, want config.password", got)
+	}
+
+	out, err := doc.JSONIndent("", "  ")
+	if err != nil {
+		t.Fatalf("JSON projection failed: %v", err)
+	}
+	for _, leaked := range []string{"nested-secret-do-not-emit", "nested-api-key-do-not-emit"} {
+		if strings.Contains(string(out), leaked) {
+			t.Fatalf("public JSON leaked nested sensitive candidate %q:\n%s", leaked, out)
+		}
+	}
+	if !strings.Contains(string(out), `"attribute_path": "config.password"`) {
+		t.Fatalf("public JSON did not report nested sensitive candidate path:\n%s", out)
+	}
+}
+
 func TestLoadDirLoadsLocalModuleTree(t *testing.T) {
 	dir := t.TempDir()
 	writeTestFile(t, dir, "main.tf", `

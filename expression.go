@@ -3,6 +3,7 @@ package tfconfig
 import (
 	"encoding/json"
 	"math/big"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -31,10 +32,10 @@ func valueFromExpr(expr hcl.Expression, attrPath string, sources map[string]sour
 				References: refs,
 				Range:      rng,
 			}
-			if isSensitiveCandidate(attrPath, out) {
+			if candidatePath, ok := sensitiveCandidatePath(attrPath, out.Literal); ok {
 				out.SensitiveCandidate = &SensitiveCandidate{
 					Reason:        "attribute name suggests secret material",
-					AttributePath: attrPath,
+					AttributePath: candidatePath,
 				}
 			}
 			return out
@@ -148,18 +149,52 @@ func numberLiteral(val cty.Value) any {
 	return json.Number(f.Text('g', -1))
 }
 
-func isSensitiveCandidate(attrPath string, val Value) bool {
-	if val.Kind != ValueKindString {
-		return false
+func sensitiveCandidatePath(attrPath string, literal any) (string, bool) {
+	if hasSensitivePathMarker(attrPath) {
+		return attrPath, true
 	}
-	if _, ok := val.Literal.(string); !ok {
-		return false
+	switch typed := literal.(type) {
+	case map[string]any:
+		keys := make([]string, 0, len(typed))
+		for key := range typed {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			childPath := joinAttrPath(attrPath, key)
+			if hasSensitivePathMarker(key) || hasSensitivePathMarker(childPath) {
+				return childPath, true
+			}
+		}
+		for _, key := range keys {
+			childPath := joinAttrPath(attrPath, key)
+			if candidatePath, ok := sensitiveCandidatePath(childPath, typed[key]); ok {
+				return candidatePath, true
+			}
+		}
+	case []any:
+		for _, child := range typed {
+			if candidatePath, ok := sensitiveCandidatePath(attrPath, child); ok {
+				return candidatePath, true
+			}
+		}
 	}
-	lower := strings.ToLower(attrPath)
+	return "", false
+}
+
+func hasSensitivePathMarker(path string) bool {
+	lower := strings.ToLower(path)
 	for _, marker := range []string{"password", "passwd", "secret", "token", "api_key", "apikey", "access_key", "private_key"} {
 		if strings.Contains(lower, marker) {
 			return true
 		}
 	}
 	return false
+}
+
+func joinAttrPath(parent, child string) string {
+	if parent == "" {
+		return child
+	}
+	return parent + "." + child
 }
