@@ -20,7 +20,8 @@ func decodeTestFile(file discoveredFile, body hcl.Body, sources map[string]sourc
 	content, contentDiags := body.Content(testFileSchema)
 	var diags []Diagnostic
 	if syntaxBody, ok := body.(*hclsyntax.Body); ok {
-		diags = unexpectedTestFileBlockDiagnostics(syntaxBody.Blocks, sources)
+		diags = append(diags, convertDiagnostics(contentDiags, "", "", sources)...)
+		diags = append(diags, unexpectedTestFileBlockDiagnostics(syntaxBody.Blocks, sources)...)
 	} else {
 		diags = convertDiagnostics(contentDiags, "", "", sources)
 	}

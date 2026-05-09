@@ -128,9 +128,18 @@ func decodeTerraformBlock(mod *Module, block *hcl.Block, override bool, sources 
 				out = append(out, upsertProviderRequirement(mod, req, override)...)
 			}
 		case "backend":
-			mod.Backends = append(mod.Backends, decodeBackendBlock(inner, sources))
+			backend := decodeBackendBlock(inner, sources)
+			if override {
+				mod.Cloud = nil
+				mod.Backends = []BackendConfig{backend}
+				continue
+			}
+			mod.Backends = append(mod.Backends, backend)
 		case "cloud":
 			cloud := decodeCloudBlock(inner, sources)
+			if override {
+				mod.Backends = nil
+			}
 			mod.Cloud = &cloud
 		case "provider_meta":
 			mod.ProviderMetas = append(mod.ProviderMetas, decodeProviderMetaBlock(inner, sources))

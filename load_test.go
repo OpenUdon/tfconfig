@@ -481,6 +481,74 @@ func TestLoadDirUsesTofuAlternativeAndOverrideOrdering(t *testing.T) {
 	}
 }
 
+func TestLoadDirAppliesBackendCloudOverrides(t *testing.T) {
+	t.Run("backend override replaces backend", func(t *testing.T) {
+		dir := t.TempDir()
+		writeTestFile(t, dir, "main.tf", `
+terraform {
+  backend "local" {
+    path = "base.tfstate"
+  }
+}
+`)
+		writeTestFile(t, dir, "override.tf", `
+terraform {
+  backend "remote" {
+    path = "override.tfstate"
+  }
+}
+`)
+
+		doc, err := LoadDir(dir)
+		if err != nil {
+			t.Fatalf("LoadDir failed: %v", err)
+		}
+		mod := requireModule(t, doc, "")
+		if len(mod.Backends) != 1 || mod.Backends[0].Type != "remote" {
+			t.Fatalf("backends after override = %#v, want only remote", mod.Backends)
+		}
+		if got, ok := attributeLiteralString(mod.Backends[0].Config, "path"); !ok || got != "override.tfstate" {
+			t.Fatalf("backend path = %q ok=%v, want override.tfstate", got, ok)
+		}
+		if mod.Cloud != nil {
+			t.Fatalf("cloud should be cleared by backend override: %#v", mod.Cloud)
+		}
+	})
+
+	t.Run("cloud override clears backend", func(t *testing.T) {
+		dir := t.TempDir()
+		writeTestFile(t, dir, "main.tf", `
+terraform {
+  backend "local" {
+    path = "base.tfstate"
+  }
+}
+`)
+		writeTestFile(t, dir, "override.tf", `
+terraform {
+  cloud {
+    organization = "example"
+  }
+}
+`)
+
+		doc, err := LoadDir(dir)
+		if err != nil {
+			t.Fatalf("LoadDir failed: %v", err)
+		}
+		mod := requireModule(t, doc, "")
+		if len(mod.Backends) != 0 {
+			t.Fatalf("backend should be cleared by cloud override: %#v", mod.Backends)
+		}
+		if mod.Cloud == nil {
+			t.Fatalf("cloud override was not decoded")
+		}
+		if got, ok := attributeLiteralString(mod.Cloud.Config, "organization"); !ok || got != "example" {
+			t.Fatalf("cloud organization = %q ok=%v, want example", got, ok)
+		}
+	})
+}
+
 func TestLoadDirDiagnosesDuplicateDeclarations(t *testing.T) {
 	dir := t.TempDir()
 	writeTestFile(t, dir, "a.tf", `variable "name" { default = "first" }`)
@@ -682,6 +750,27 @@ run "basic" {
 	}
 }
 
+func TestLoadDirSurfacesMalformedTestRunDiagnostics(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `variable "name" { default = "x" }`)
+	writeTestFile(t, filepath.Join(dir, "tests"), "main.tftest.hcl", `
+run {
+  assert {
+    condition = true
+    error_message = "missing run label"
+  }
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	if len(doc.Modules[0].Diagnostics) == 0 {
+		t.Fatalf("expected malformed test run diagnostics")
+	}
+}
+
 func TestLoadDirReturnsParseDiagnostics(t *testing.T) {
 	dir := t.TempDir()
 	writeTestFile(t, dir, "main.tf", `resource "bad" {`)
@@ -754,4 +843,15 @@ func assertModuleDiagnostic(t *testing.T, mod Module, status ModuleStatus, code 
 	if len(mod.Diagnostics) != 1 || mod.Diagnostics[0].Code != code {
 		t.Fatalf("module %s diagnostics = %#v, want one %s", mod.Address, mod.Diagnostics, code)
 	}
+}
+
+func attributeLiteralString(attrs []Attribute, path string) (string, bool) {
+	for _, attr := range attrs {
+		if attr.Path != path {
+			continue
+		}
+		value, ok := attr.Value.Literal.(string)
+		return value, ok
+	}
+	return "", false
 }

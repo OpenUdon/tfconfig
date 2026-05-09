@@ -161,6 +161,127 @@ func TestOpenTofuValidModulesFixtureCorpus(t *testing.T) {
 	}
 }
 
+func TestOpenTofuValidModulesFixtureSemantics(t *testing.T) {
+	root := os.Getenv("OPENTOFU_VALID_MODULES")
+	if root == "" {
+		root = filepath.Join("..", "opentofu", "internal", "configs", "testdata", "valid-modules")
+	}
+	if info, err := os.Stat(root); err != nil || !info.IsDir() {
+		t.Skipf("OpenTofu valid-modules fixture corpus not available at %s", root)
+	}
+
+	t.Run("backend and cloud overrides", func(t *testing.T) {
+		backend := loadOpenTofuValidModuleFixture(t, root, "override-backend")
+		backendMod := requireModule(t, backend, "")
+		if len(backendMod.Backends) != 1 || backendMod.Backends[0].Type != "bar" {
+			t.Fatalf("override-backend backends = %#v, want only bar", backendMod.Backends)
+		}
+		if got, ok := attributeLiteralString(backendMod.Backends[0].Config, "path"); !ok || got != "CHANGED/relative/path/to/terraform.tfstate" {
+			t.Fatalf("override-backend path = %q ok=%v", got, ok)
+		}
+
+		cloud := loadOpenTofuValidModuleFixture(t, root, "override-cloud")
+		cloudMod := requireModule(t, cloud, "")
+		if cloudMod.Cloud == nil {
+			t.Fatalf("override-cloud did not decode cloud config")
+		}
+		if got, ok := attributeLiteralString(cloudMod.Cloud.Config, "organization"); !ok || got != "CHANGED" {
+			t.Fatalf("override-cloud organization = %q ok=%v", got, ok)
+		}
+		if _, ok := attributeLiteralString(cloudMod.Cloud.Config, "should_not_be_present_with_override"); ok {
+			t.Fatalf("override-cloud preserved overridden attribute: %#v", cloudMod.Cloud.Config)
+		}
+
+		cloudOverBackend := loadOpenTofuValidModuleFixture(t, root, "override-backend-with-cloud")
+		cloudOverBackendMod := requireModule(t, cloudOverBackend, "")
+		if len(cloudOverBackendMod.Backends) != 0 {
+			t.Fatalf("cloud override should clear backend: %#v", cloudOverBackendMod.Backends)
+		}
+		if cloudOverBackendMod.Cloud == nil {
+			t.Fatalf("cloud override did not decode cloud config")
+		}
+	})
+
+	t.Run("provider meta and ephemeral resources", func(t *testing.T) {
+		providerMeta := loadOpenTofuValidModuleFixture(t, root, "provider-meta")
+		metaMod := requireModule(t, providerMeta, "")
+		if len(metaMod.ProviderMetas) != 1 || metaMod.ProviderMetas[0].Provider != "my-provider" {
+			t.Fatalf("provider meta = %#v, want my-provider", metaMod.ProviderMetas)
+		}
+		if got, ok := attributeLiteralString(metaMod.ProviderMetas[0].Config, "hello"); !ok || got != "test-module" {
+			t.Fatalf("provider meta hello = %q ok=%v", got, ok)
+		}
+
+		ephemeral := loadOpenTofuValidModuleFixture(t, root, "nested-providers-fqns")
+		rootMod := requireModule(t, ephemeral, "")
+		eph, ok := ephemeralResourceByAddress(rootMod.EphemeralResources, "ephemeral.test_ephemeral.explicit")
+		if !ok {
+			t.Fatalf("ephemeral resource not decoded: %#v", rootMod.EphemeralResources)
+		}
+		if eph.Provider == nil || eph.Provider.Address != "provider.foo-test" {
+			t.Fatalf("ephemeral provider = %#v, want provider.foo-test", eph.Provider)
+		}
+	})
+
+	t.Run("test file variables and plan options", func(t *testing.T) {
+		doc := loadOpenTofuValidModuleFixture(t, root, "with-tests")
+		mod := requireModule(t, doc, "")
+		testFile, ok := testFileByPath(mod.Tests, "test_case_one.tftest.hcl")
+		if !ok {
+			t.Fatalf("test_case_one.tftest.hcl not decoded: %#v", mod.Tests)
+		}
+		if got, ok := attributeLiteralString(testFile.Variables, "input"); !ok || got != "default" {
+			t.Fatalf("top-level test variable input = %q ok=%v", got, ok)
+		}
+		run, ok := testRunByName(testFile.Runs, "test_run_one")
+		if !ok {
+			t.Fatalf("test_run_one not decoded: %#v", testFile.Runs)
+		}
+		if run.Command != "plan" || len(run.PlanOptions) == 0 || len(run.Assertions) == 0 {
+			t.Fatalf("test run facts not decoded: %#v", run)
+		}
+	})
+}
+
+func loadOpenTofuValidModuleFixture(t *testing.T, root, name string) Document {
+	t.Helper()
+	doc, err := LoadDir(filepath.Join(root, name))
+	if err != nil {
+		t.Fatalf("LoadDir(%s) failed: %v", name, err)
+	}
+	if errors := documentErrorDiagnostics(doc); len(errors) != 0 {
+		t.Fatalf("LoadDir(%s) returned error diagnostics: %#v", name, errors)
+	}
+	return doc
+}
+
+func ephemeralResourceByAddress(resources []EphemeralResource, address string) (EphemeralResource, bool) {
+	for _, resource := range resources {
+		if resource.Address == address {
+			return resource, true
+		}
+	}
+	return EphemeralResource{}, false
+}
+
+func testFileByPath(files []TestFile, path string) (TestFile, bool) {
+	for _, file := range files {
+		if file.Path == path {
+			return file, true
+		}
+	}
+	return TestFile{}, false
+}
+
+func testRunByName(runs []TestRun, name string) (TestRun, bool) {
+	for _, run := range runs {
+		if run.Name == name {
+			return run, true
+		}
+	}
+	return TestRun{}, false
+}
+
 func diagnosticCodesEqual(diags []Diagnostic, want []string) bool {
 	if len(diags) != len(want) {
 		return false
