@@ -38,35 +38,68 @@ var terraformBlockSchema = &hcl.BodySchema{
 func decodeConfigFile(mod *Module, file discoveredFile, body hcl.Body, sources map[string]sourceInfo) []Diagnostic {
 	content, diags := body.Content(configFileSchema)
 	out := convertDiagnostics(diags, mod.Address, "", sources)
+	override := file.Role == FileRoleOverride
 
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "terraform":
 			out = append(out, decodeTerraformBlock(mod, block, sources)...)
 		case "provider":
-			upsertProviderConfig(mod, decodeProviderBlock(block, sources))
+			cfg, cfgDiags := decodeProviderBlock(block, sources)
+			out = append(out, cfgDiags...)
+			out = append(out, upsertProviderConfig(mod, cfg, override)...)
 		case "variable":
-			upsertVariable(mod, decodeVariableBlock(block, sources))
+			v, vDiags := decodeVariableBlock(block, sources)
+			out = append(out, vDiags...)
+			out = append(out, upsertVariable(mod, v, override)...)
 		case "locals":
-			for _, local := range decodeLocalsBlock(block, sources) {
-				upsertLocal(mod, local)
+			locals, localDiags := decodeLocalsBlock(block, sources)
+			out = append(out, localDiags...)
+			for _, local := range locals {
+				out = append(out, upsertLocal(mod, local, override)...)
 			}
 		case "output":
-			upsertOutput(mod, decodeOutputBlock(block, sources))
+			output, outputDiags := decodeOutputBlock(block, sources)
+			out = append(out, outputDiags...)
+			out = append(out, upsertOutput(mod, output, override)...)
 		case "resource":
-			upsertResource(mod, decodeResourceBlock(block, sources))
+			res, resDiags := decodeResourceBlock(block, sources)
+			out = append(out, resDiags...)
+			out = append(out, upsertResource(mod, res, override)...)
 		case "data":
-			upsertDataSource(mod, decodeDataSourceBlock(block, sources))
+			ds, dsDiags := decodeDataSourceBlock(block, sources)
+			out = append(out, dsDiags...)
+			out = append(out, upsertDataSource(mod, ds, override)...)
 		case "module":
-			upsertModuleCall(mod, decodeModuleCallBlock(block, sources))
+			call, callDiags := decodeModuleCallBlock(block, sources)
+			out = append(out, callDiags...)
+			out = append(out, upsertModuleCall(mod, call, override)...)
 		case "moved":
+			if override {
+				out = append(out, unsupportedOverrideDiag("'moved' blocks", block.DefRange, sources))
+				continue
+			}
 			mod.Moved = append(mod.Moved, decodeMovedBlock(block, sources))
 		case "import":
+			if override {
+				out = append(out, unsupportedOverrideDiag("'import' blocks", block.DefRange, sources))
+				continue
+			}
 			mod.Imports = append(mod.Imports, decodeImportBlock(block, sources))
 		case "removed":
+			if override {
+				out = append(out, unsupportedOverrideDiag("'removed' blocks", block.DefRange, sources))
+				continue
+			}
 			mod.Removed = append(mod.Removed, decodeRemovedBlock(block, sources))
 		case "check":
-			mod.Checks = append(mod.Checks, decodeCheckBlock(block, sources))
+			if override {
+				out = append(out, unsupportedOverrideDiag("'check' blocks", block.DefRange, sources))
+				continue
+			}
+			check, checkDiags := decodeCheckBlock(block, sources)
+			out = append(out, checkDiags...)
+			mod.Checks = append(mod.Checks, check)
 		}
 	}
 	return out
@@ -83,7 +116,7 @@ func decodeTerraformBlock(mod *Module, block *hcl.Block, sources map[string]sour
 			reqs, reqDiags := decodeRequiredProvidersBlock(inner, sources)
 			out = append(out, reqDiags...)
 			for _, req := range reqs {
-				upsertProviderRequirement(mod, req)
+				out = append(out, upsertProviderRequirement(mod, req)...)
 			}
 		}
 	}
@@ -115,9 +148,9 @@ func decodeRequiredProvidersBlock(block *hcl.Block, sources map[string]sourceInf
 	return reqs, out
 }
 
-func decodeProviderBlock(block *hcl.Block, sources map[string]sourceInfo) ProviderConfig {
+func decodeProviderBlock(block *hcl.Block, sources map[string]sourceInfo) (ProviderConfig, []Diagnostic) {
 	name := block.Labels[0]
-	attrs := justAttributes(block.Body)
+	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
 	cfg := ProviderConfig{
 		LocalName: name,
 		Address:   providerAddress(name, ""),
@@ -129,14 +162,17 @@ func decodeProviderBlock(block *hcl.Block, sources map[string]sourceInfo) Provid
 			cfg.Address = providerAddress(name, alias)
 		}
 	}
-	cfg.Config = decodeBodyAttributes(block.Body, reservedProviderAttrs(), sources)
+	cfg.Config = attributesFromMap(attrs, reservedProviderAttrs(), sources)
 	cfg.References = referencesFromAttributes(cfg.Config)
-	return cfg
+	return cfg, diags
 }
 
-func decodeVariableBlock(block *hcl.Block, sources map[string]sourceInfo) Variable {
-	attrs := justAttributes(block.Body)
+func decodeVariableBlock(block *hcl.Block, sources map[string]sourceInfo) (Variable, []Diagnostic) {
+	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
 	v := Variable{Name: block.Labels[0], Range: sourceRange(block.DefRange, sources)}
+	if attr, ok := attrs["sensitive"]; ok {
+		v.Sensitive, _ = literalBool(attr.Expr)
+	}
 	if attr, ok := attrs["type"]; ok {
 		val := valueFromExpr(attr.Expr, "type", sources)
 		val.Kind = ValueKindExpression
@@ -144,25 +180,23 @@ func decodeVariableBlock(block *hcl.Block, sources map[string]sourceInfo) Variab
 	}
 	if attr, ok := attrs["default"]; ok {
 		val := valueFromExpr(attr.Expr, "default", sources)
+		val.Sensitive = v.Sensitive
 		v.Default = &val
 		v.References = append(v.References, val.References...)
 	}
 	if attr, ok := attrs["description"]; ok {
 		v.Description, _ = literalString(attr.Expr, sources)
 	}
-	if attr, ok := attrs["sensitive"]; ok {
-		v.Sensitive, _ = literalBool(attr.Expr)
-	}
 	if attr, ok := attrs["nullable"]; ok {
 		if b, ok := literalBool(attr.Expr); ok {
 			v.Nullable = &b
 		}
 	}
-	return v
+	return v, diags
 }
 
-func decodeLocalsBlock(block *hcl.Block, sources map[string]sourceInfo) []Local {
-	attrs := justAttributes(block.Body)
+func decodeLocalsBlock(block *hcl.Block, sources map[string]sourceInfo) ([]Local, []Diagnostic) {
+	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
 	locals := make([]Local, 0, len(attrs))
 	for name, attr := range attrs {
 		val := valueFromExpr(attr.Expr, name, sources)
@@ -173,32 +207,33 @@ func decodeLocalsBlock(block *hcl.Block, sources map[string]sourceInfo) []Local 
 			Range:      sourceRange(attr.Range, sources),
 		})
 	}
-	return locals
+	return locals, diags
 }
 
-func decodeOutputBlock(block *hcl.Block, sources map[string]sourceInfo) Output {
-	attrs := justAttributes(block.Body)
+func decodeOutputBlock(block *hcl.Block, sources map[string]sourceInfo) (Output, []Diagnostic) {
+	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
 	o := Output{Name: block.Labels[0], Range: sourceRange(block.DefRange, sources)}
+	if attr, ok := attrs["sensitive"]; ok {
+		o.Sensitive, _ = literalBool(attr.Expr)
+	}
 	if attr, ok := attrs["value"]; ok {
 		val := valueFromExpr(attr.Expr, "value", sources)
+		val.Sensitive = o.Sensitive
 		o.Value = &val
 		o.References = append(o.References, val.References...)
 	}
 	if attr, ok := attrs["description"]; ok {
 		o.Description, _ = literalString(attr.Expr, sources)
 	}
-	if attr, ok := attrs["sensitive"]; ok {
-		o.Sensitive, _ = literalBool(attr.Expr)
-	}
 	if attr, ok := attrs["depends_on"]; ok {
 		o.DependsOn = referencesFromExpr(attr.Expr, sources)
 	}
-	return o
+	return o, diags
 }
 
-func decodeResourceBlock(block *hcl.Block, sources map[string]sourceInfo) Resource {
+func decodeResourceBlock(block *hcl.Block, sources map[string]sourceInfo) (Resource, []Diagnostic) {
 	typ, name := block.Labels[0], block.Labels[1]
-	attrs := justAttributes(block.Body)
+	attrs, diags := attributesWithAllowedBlocks(block.Body, []hcl.BlockHeaderSchema{{Type: "lifecycle"}}, sources)
 	res := Resource{
 		Address: address(typ, name),
 		Type:    typ,
@@ -221,15 +256,17 @@ func decodeResourceBlock(block *hcl.Block, sources map[string]sourceInfo) Resour
 		res.ForEach = &val
 		res.References = append(res.References, val.References...)
 	}
-	res.Config = decodeBodyAttributes(block.Body, reservedResourceAttrs(), sources)
+	res.Config = attributesFromMap(attrs, reservedResourceAttrs(), sources)
 	res.References = append(res.References, referencesFromAttributes(res.Config)...)
-	res.Lifecycle = decodeLifecycle(block.Body, sources)
-	return res
+	lifecycle, lifecycleDiags := decodeLifecycle(block.Body, sources)
+	diags = append(diags, lifecycleDiags...)
+	res.Lifecycle = lifecycle
+	return res, diags
 }
 
-func decodeDataSourceBlock(block *hcl.Block, sources map[string]sourceInfo) DataSource {
+func decodeDataSourceBlock(block *hcl.Block, sources map[string]sourceInfo) (DataSource, []Diagnostic) {
 	typ, name := block.Labels[0], block.Labels[1]
-	attrs := justAttributes(block.Body)
+	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
 	ds := DataSource{
 		Address: "data." + address(typ, name),
 		Type:    typ,
@@ -252,14 +289,14 @@ func decodeDataSourceBlock(block *hcl.Block, sources map[string]sourceInfo) Data
 		ds.ForEach = &val
 		ds.References = append(ds.References, val.References...)
 	}
-	ds.Config = decodeBodyAttributes(block.Body, reservedResourceAttrs(), sources)
+	ds.Config = attributesFromMap(attrs, reservedResourceAttrs(), sources)
 	ds.References = append(ds.References, referencesFromAttributes(ds.Config)...)
-	return ds
+	return ds, diags
 }
 
-func decodeModuleCallBlock(block *hcl.Block, sources map[string]sourceInfo) ModuleCall {
+func decodeModuleCallBlock(block *hcl.Block, sources map[string]sourceInfo) (ModuleCall, []Diagnostic) {
 	name := block.Labels[0]
-	attrs := justAttributes(block.Body)
+	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
 	call := ModuleCall{
 		Address: "module." + name,
 		Name:    name,
@@ -285,13 +322,13 @@ func decodeModuleCallBlock(block *hcl.Block, sources map[string]sourceInfo) Modu
 	if attr, ok := attrs["providers"]; ok {
 		call.ProviderMappings = providerMappingsFromExpr(attr.Expr, sources)
 	}
-	call.Inputs = decodeBodyAttributes(block.Body, reservedModuleAttrs(), sources)
+	call.Inputs = attributesFromMap(attrs, reservedModuleAttrs(), sources)
 	call.References = append(call.References, referencesFromAttributes(call.Inputs)...)
-	return call
+	return call, diags
 }
 
 func decodeMovedBlock(block *hcl.Block, sources map[string]sourceInfo) MovedBlock {
-	attrs := justAttributes(block.Body)
+	attrs, _ := attributesWithAllowedBlocks(block.Body, nil, sources)
 	moved := MovedBlock{Range: sourceRange(block.DefRange, sources)}
 	if attr, ok := attrs["from"]; ok {
 		moved.From = exprText(attr.Expr, sources)
@@ -303,7 +340,7 @@ func decodeMovedBlock(block *hcl.Block, sources map[string]sourceInfo) MovedBloc
 }
 
 func decodeImportBlock(block *hcl.Block, sources map[string]sourceInfo) ImportBlock {
-	attrs := justAttributes(block.Body)
+	attrs, _ := attributesWithAllowedBlocks(block.Body, nil, sources)
 	imp := ImportBlock{Range: sourceRange(block.DefRange, sources)}
 	if attr, ok := attrs["to"]; ok {
 		imp.To = exprText(attr.Expr, sources)
@@ -319,37 +356,43 @@ func decodeImportBlock(block *hcl.Block, sources map[string]sourceInfo) ImportBl
 }
 
 func decodeRemovedBlock(block *hcl.Block, sources map[string]sourceInfo) RemovedBlock {
-	attrs := justAttributes(block.Body)
+	attrs, _ := attributesWithAllowedBlocks(block.Body, []hcl.BlockHeaderSchema{{Type: "lifecycle"}}, sources)
 	removed := RemovedBlock{Range: sourceRange(block.DefRange, sources)}
 	if attr, ok := attrs["from"]; ok {
 		removed.From = exprText(attr.Expr, sources)
 	}
-	removed.Lifecycle = decodeLifecycle(block.Body, sources)
+	lifecycle, _ := decodeLifecycle(block.Body, sources)
+	removed.Lifecycle = lifecycle
 	return removed
 }
 
-func decodeCheckBlock(block *hcl.Block, sources map[string]sourceInfo) CheckBlock {
+func decodeCheckBlock(block *hcl.Block, sources map[string]sourceInfo) (CheckBlock, []Diagnostic) {
 	check := CheckBlock{Name: block.Labels[0], Range: sourceRange(block.DefRange, sources)}
-	content, _ := block.Body.Content(&hcl.BodySchema{
+	content, contentDiags := block.Body.Content(&hcl.BodySchema{
 		Blocks: []hcl.BlockHeaderSchema{{Type: "assert"}},
 	})
+	diags := convertDiagnostics(contentDiags, "", "", sources)
 	for _, assert := range content.Blocks {
-		check.Assertions = append(check.Assertions, decodeCheckRule(assert, sources))
+		rule, ruleDiags := decodeCheckRule(assert, sources)
+		diags = append(diags, ruleDiags...)
+		check.Assertions = append(check.Assertions, rule)
 	}
-	return check
+	return check, diags
 }
 
-func decodeLifecycle(body hcl.Body, sources map[string]sourceInfo) *Lifecycle {
-	content, _ := body.Content(&hcl.BodySchema{
+func decodeLifecycle(body hcl.Body, sources map[string]sourceInfo) (*Lifecycle, []Diagnostic) {
+	content, _, contentDiags := body.PartialContent(&hcl.BodySchema{
 		Blocks: []hcl.BlockHeaderSchema{
 			{Type: "lifecycle"},
 		},
 	})
+	diags := convertDiagnostics(contentDiags, "", "", sources)
 	if len(content.Blocks) == 0 {
-		return nil
+		return nil, diags
 	}
 	block := content.Blocks[0]
-	attrs := justAttributes(block.Body)
+	attrs, attrDiags := attributesWithAllowedBlocks(block.Body, []hcl.BlockHeaderSchema{{Type: "precondition"}, {Type: "postcondition"}}, sources)
+	diags = append(diags, attrDiags...)
 	l := &Lifecycle{Range: sourceRange(block.DefRange, sources)}
 	if attr, ok := attrs["create_before_destroy"]; ok {
 		val := valueFromExpr(attr.Expr, "create_before_destroy", sources)
@@ -365,14 +408,16 @@ func decodeLifecycle(body hcl.Body, sources map[string]sourceInfo) *Lifecycle {
 	if attr, ok := attrs["replace_triggered_by"]; ok {
 		l.ReplaceTriggeredBy = referencesFromExpr(attr.Expr, sources)
 	}
-	content, _ = block.Body.Content(&hcl.BodySchema{
+	content, _, contentDiags = block.Body.PartialContent(&hcl.BodySchema{
 		Blocks: []hcl.BlockHeaderSchema{
 			{Type: "precondition"},
 			{Type: "postcondition"},
 		},
 	})
+	diags = append(diags, convertDiagnostics(contentDiags, "", "", sources)...)
 	for _, rule := range content.Blocks {
-		decoded := decodeCheckRule(rule, sources)
+		decoded, ruleDiags := decodeCheckRule(rule, sources)
+		diags = append(diags, ruleDiags...)
 		switch rule.Type {
 		case "precondition":
 			l.Preconditions = append(l.Preconditions, decoded)
@@ -380,11 +425,11 @@ func decodeLifecycle(body hcl.Body, sources map[string]sourceInfo) *Lifecycle {
 			l.Postconditions = append(l.Postconditions, decoded)
 		}
 	}
-	return l
+	return l, diags
 }
 
-func decodeCheckRule(block *hcl.Block, sources map[string]sourceInfo) CheckRule {
-	attrs := justAttributes(block.Body)
+func decodeCheckRule(block *hcl.Block, sources map[string]sourceInfo) (CheckRule, []Diagnostic) {
+	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
 	rule := CheckRule{Range: sourceRange(block.DefRange, sources)}
 	if attr, ok := attrs["condition"]; ok {
 		val := valueFromExpr(attr.Expr, "condition", sources)
@@ -396,11 +441,15 @@ func decodeCheckRule(block *hcl.Block, sources map[string]sourceInfo) CheckRule 
 		rule.ErrorMessage = &val
 		rule.References = append(rule.References, val.References...)
 	}
-	return rule
+	return rule, diags
 }
 
-func decodeBodyAttributes(body hcl.Body, reserved map[string]bool, sources map[string]sourceInfo) []Attribute {
-	attrs := justAttributes(body)
+func decodeBodyAttributes(body hcl.Body, reserved map[string]bool, allowedBlocks []hcl.BlockHeaderSchema, sources map[string]sourceInfo) ([]Attribute, []Diagnostic) {
+	attrs, diags := attributesWithAllowedBlocks(body, allowedBlocks, sources)
+	return attributesFromMap(attrs, reserved, sources), diags
+}
+
+func attributesFromMap(attrs hcl.Attributes, reserved map[string]bool, sources map[string]sourceInfo) []Attribute {
 	out := make([]Attribute, 0, len(attrs))
 	for name, attr := range attrs {
 		if reserved[name] {
@@ -416,9 +465,17 @@ func decodeBodyAttributes(body hcl.Body, reserved map[string]bool, sources map[s
 	return out
 }
 
-func justAttributes(body hcl.Body) hcl.Attributes {
-	attrs, _ := body.JustAttributes()
-	return attrs
+func attributesWithAllowedBlocks(body hcl.Body, allowedBlocks []hcl.BlockHeaderSchema, sources map[string]sourceInfo) (hcl.Attributes, []Diagnostic) {
+	remaining := body
+	var out []Diagnostic
+	if len(allowedBlocks) > 0 {
+		_, remain, diags := body.PartialContent(&hcl.BodySchema{Blocks: allowedBlocks})
+		out = append(out, convertDiagnostics(diags, "", "", sources)...)
+		remaining = remain
+	}
+	attrs, diags := remaining.JustAttributes()
+	out = append(out, convertDiagnostics(diags, "", "", sources)...)
+	return attrs, out
 }
 
 func reservedProviderAttrs() map[string]bool {
@@ -556,84 +613,293 @@ func referencesFromAttributes(attrs []Attribute) []Reference {
 	return refs
 }
 
-func upsertProviderRequirement(mod *Module, req ProviderRequirement) {
+func upsertProviderRequirement(mod *Module, req ProviderRequirement) []Diagnostic {
 	for i := range mod.RequiredProviders {
 		if mod.RequiredProviders[i].LocalName == req.LocalName {
-			mod.RequiredProviders[i] = req
-			return
+			return []Diagnostic{duplicateDiag("provider requirement", req.LocalName, req.Range)}
 		}
 	}
 	mod.RequiredProviders = append(mod.RequiredProviders, req)
+	return nil
 }
 
-func upsertProviderConfig(mod *Module, cfg ProviderConfig) {
+func upsertProviderConfig(mod *Module, cfg ProviderConfig, override bool) []Diagnostic {
 	for i := range mod.ProviderConfigs {
 		if mod.ProviderConfigs[i].Address == cfg.Address {
-			mod.ProviderConfigs[i] = cfg
-			return
+			if !override {
+				return []Diagnostic{duplicateDiag("provider configuration", cfg.Address, cfg.Range)}
+			}
+			mergeProviderConfig(&mod.ProviderConfigs[i], cfg)
+			return nil
 		}
+	}
+	if override {
+		return []Diagnostic{missingBaseOverrideDiag("provider configuration", cfg.Address, cfg.Range)}
 	}
 	mod.ProviderConfigs = append(mod.ProviderConfigs, cfg)
+	return nil
 }
 
-func upsertVariable(mod *Module, v Variable) {
+func upsertVariable(mod *Module, v Variable, override bool) []Diagnostic {
 	for i := range mod.Variables {
 		if mod.Variables[i].Name == v.Name {
-			mod.Variables[i] = v
-			return
+			if !override {
+				return []Diagnostic{duplicateDiag("variable", v.Name, v.Range)}
+			}
+			mergeVariable(&mod.Variables[i], v)
+			return nil
 		}
+	}
+	if override {
+		return []Diagnostic{missingBaseOverrideDiag("variable", v.Name, v.Range)}
 	}
 	mod.Variables = append(mod.Variables, v)
+	return nil
 }
 
-func upsertLocal(mod *Module, local Local) {
+func upsertLocal(mod *Module, local Local, override bool) []Diagnostic {
 	for i := range mod.Locals {
 		if mod.Locals[i].Name == local.Name {
-			mod.Locals[i] = local
-			return
+			if !override {
+				return []Diagnostic{duplicateDiag("local value", local.Name, local.Range)}
+			}
+			mergeLocal(&mod.Locals[i], local)
+			return nil
 		}
+	}
+	if override {
+		return []Diagnostic{missingBaseOverrideDiag("local value", local.Name, local.Range)}
 	}
 	mod.Locals = append(mod.Locals, local)
+	return nil
 }
 
-func upsertOutput(mod *Module, o Output) {
+func upsertOutput(mod *Module, o Output, override bool) []Diagnostic {
 	for i := range mod.Outputs {
 		if mod.Outputs[i].Name == o.Name {
-			mod.Outputs[i] = o
-			return
+			if !override {
+				return []Diagnostic{duplicateDiag("output", o.Name, o.Range)}
+			}
+			mergeOutput(&mod.Outputs[i], o)
+			return nil
 		}
+	}
+	if override {
+		return []Diagnostic{missingBaseOverrideDiag("output", o.Name, o.Range)}
 	}
 	mod.Outputs = append(mod.Outputs, o)
+	return nil
 }
 
-func upsertResource(mod *Module, r Resource) {
+func upsertResource(mod *Module, r Resource, override bool) []Diagnostic {
 	for i := range mod.Resources {
 		if mod.Resources[i].Address == r.Address {
-			mod.Resources[i] = r
-			return
+			if !override {
+				return []Diagnostic{duplicateDiag("resource", r.Address, r.Range)}
+			}
+			mergeResource(&mod.Resources[i], r)
+			return nil
 		}
+	}
+	if override {
+		return []Diagnostic{missingBaseOverrideDiag("resource", r.Address, r.Range)}
 	}
 	mod.Resources = append(mod.Resources, r)
+	return nil
 }
 
-func upsertDataSource(mod *Module, ds DataSource) {
+func upsertDataSource(mod *Module, ds DataSource, override bool) []Diagnostic {
 	for i := range mod.DataSources {
 		if mod.DataSources[i].Address == ds.Address {
-			mod.DataSources[i] = ds
-			return
+			if !override {
+				return []Diagnostic{duplicateDiag("data source", ds.Address, ds.Range)}
+			}
+			mergeDataSource(&mod.DataSources[i], ds)
+			return nil
 		}
+	}
+	if override {
+		return []Diagnostic{missingBaseOverrideDiag("data source", ds.Address, ds.Range)}
 	}
 	mod.DataSources = append(mod.DataSources, ds)
+	return nil
 }
 
-func upsertModuleCall(mod *Module, call ModuleCall) {
+func upsertModuleCall(mod *Module, call ModuleCall, override bool) []Diagnostic {
 	for i := range mod.ModuleCalls {
 		if mod.ModuleCalls[i].Address == call.Address {
-			mod.ModuleCalls[i] = call
-			return
+			if !override {
+				return []Diagnostic{duplicateDiag("module call", call.Address, call.Range)}
+			}
+			mergeModuleCall(&mod.ModuleCalls[i], call)
+			return nil
 		}
 	}
+	if override {
+		return []Diagnostic{missingBaseOverrideDiag("module call", call.Address, call.Range)}
+	}
 	mod.ModuleCalls = append(mod.ModuleCalls, call)
+	return nil
+}
+
+func duplicateDiag(kind, name string, rng *SourceRange) Diagnostic {
+	return modelDiagnostic(DiagnosticError, "duplicate_declaration", "Duplicate declaration", fmt.Sprintf("Duplicate %s %q was ignored.", kind, name), "", name, rng)
+}
+
+func missingBaseOverrideDiag(kind, name string, rng *SourceRange) Diagnostic {
+	return modelDiagnostic(DiagnosticError, "missing_base_override", "Missing base declaration for override", fmt.Sprintf("There is no %s %q for this override file declaration to override.", kind, name), "", name, rng)
+}
+
+func unsupportedOverrideDiag(kind string, rng hcl.Range, sources map[string]sourceInfo) Diagnostic {
+	return modelDiagnostic(DiagnosticError, "unsupported_override", "Unsupported override", fmt.Sprintf("Override files cannot override %s.", kind), "", "", sourceRange(rng, sources))
+}
+
+func mergeProviderConfig(dst *ProviderConfig, src ProviderConfig) {
+	if src.Alias != "" {
+		dst.Alias = src.Alias
+	}
+	dst.Config = mergeAttributes(dst.Config, src.Config)
+	dst.References = referencesFromAttributes(dst.Config)
+	dst.Range = src.Range
+}
+
+func mergeVariable(dst *Variable, src Variable) {
+	if src.Type != nil {
+		dst.Type = src.Type
+	}
+	if src.Default != nil {
+		dst.Default = src.Default
+	}
+	if src.Description != "" {
+		dst.Description = src.Description
+	}
+	if src.Sensitive {
+		dst.Sensitive = true
+		if dst.Default != nil {
+			dst.Default.Sensitive = true
+		}
+	}
+	if src.Nullable != nil {
+		dst.Nullable = src.Nullable
+	}
+	dst.References = src.References
+	dst.Range = src.Range
+}
+
+func mergeLocal(dst *Local, src Local) {
+	if src.Value != nil {
+		dst.Value = src.Value
+	}
+	dst.References = src.References
+	dst.Range = src.Range
+}
+
+func mergeOutput(dst *Output, src Output) {
+	if src.Value != nil {
+		dst.Value = src.Value
+	}
+	if src.Description != "" {
+		dst.Description = src.Description
+	}
+	if src.Sensitive {
+		dst.Sensitive = true
+		if dst.Value != nil {
+			dst.Value.Sensitive = true
+		}
+	}
+	if len(src.DependsOn) > 0 {
+		dst.DependsOn = src.DependsOn
+	}
+	dst.References = src.References
+	dst.Range = src.Range
+}
+
+func mergeResource(dst *Resource, src Resource) {
+	if src.Provider != nil {
+		dst.Provider = src.Provider
+	}
+	dst.Config = mergeAttributes(dst.Config, src.Config)
+	if src.Lifecycle != nil {
+		dst.Lifecycle = src.Lifecycle
+	}
+	if len(src.DependsOn) > 0 {
+		dst.DependsOn = src.DependsOn
+	}
+	if src.Count != nil {
+		dst.Count = src.Count
+	}
+	if src.ForEach != nil {
+		dst.ForEach = src.ForEach
+	}
+	dst.References = append(referencesFromAttributes(dst.Config), valueRefs(dst.Count)...)
+	dst.References = append(dst.References, valueRefs(dst.ForEach)...)
+	dst.Range = src.Range
+}
+
+func mergeDataSource(dst *DataSource, src DataSource) {
+	if src.Provider != nil {
+		dst.Provider = src.Provider
+	}
+	dst.Config = mergeAttributes(dst.Config, src.Config)
+	if len(src.DependsOn) > 0 {
+		dst.DependsOn = src.DependsOn
+	}
+	if src.Count != nil {
+		dst.Count = src.Count
+	}
+	if src.ForEach != nil {
+		dst.ForEach = src.ForEach
+	}
+	dst.References = append(referencesFromAttributes(dst.Config), valueRefs(dst.Count)...)
+	dst.References = append(dst.References, valueRefs(dst.ForEach)...)
+	dst.Range = src.Range
+}
+
+func mergeModuleCall(dst *ModuleCall, src ModuleCall) {
+	if src.Source != nil {
+		dst.Source = src.Source
+	}
+	dst.Inputs = mergeAttributes(dst.Inputs, src.Inputs)
+	if len(src.ProviderMappings) > 0 {
+		dst.ProviderMappings = src.ProviderMappings
+	}
+	if len(src.DependsOn) > 0 {
+		dst.DependsOn = src.DependsOn
+	}
+	if src.Count != nil {
+		dst.Count = src.Count
+	}
+	if src.ForEach != nil {
+		dst.ForEach = src.ForEach
+	}
+	dst.References = append(referencesFromAttributes(dst.Inputs), valueRefs(dst.Count)...)
+	dst.References = append(dst.References, valueRefs(dst.ForEach)...)
+	dst.Range = src.Range
+}
+
+func mergeAttributes(dst, src []Attribute) []Attribute {
+	for _, incoming := range src {
+		replaced := false
+		for i := range dst {
+			if dst[i].Path == incoming.Path {
+				dst[i] = incoming
+				replaced = true
+				break
+			}
+		}
+		if !replaced {
+			dst = append(dst, incoming)
+		}
+	}
+	sort.Slice(dst, func(i, j int) bool { return dst[i].Path < dst[j].Path })
+	return dst
+}
+
+func valueRefs(v *Value) []Reference {
+	if v == nil {
+		return nil
+	}
+	return v.References
 }
 
 func missingAttributeDiag(block *hcl.Block, attr string, sources map[string]sourceInfo) Diagnostic {

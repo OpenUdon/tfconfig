@@ -104,7 +104,9 @@ func LoadDirWithOptions(dir string, opts LoadOptions) (Document, error) {
 			continue
 		}
 		if file.Role == FileRoleTest {
-			mod.Tests = append(mod.Tests, decodeTestFile(file, body, sources)...)
+			tests, testDiags := decodeTestFile(file, body, sources)
+			mod.Diagnostics = append(mod.Diagnostics, testDiags...)
+			mod.Tests = append(mod.Tests, tests...)
 			continue
 		}
 		fileDiags := decodeConfigFile(&mod, file, body, sources)

@@ -124,3 +124,70 @@ func TestValueJSONDoesNotMutateReferences(t *testing.T) {
 		t.Fatalf("Value.MarshalJSON mutated references[0] = %q, want var.z", got)
 	}
 }
+
+func TestSensitiveValueJSONIsRedacted(t *testing.T) {
+	v := Value{
+		Kind:      ValueKindString,
+		Literal:   "plain-secret",
+		Sensitive: true,
+	}
+
+	got, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("marshal sensitive value: %v", err)
+	}
+	if strings.Contains(string(got), "plain-secret") {
+		t.Fatalf("sensitive value leaked literal: %s", got)
+	}
+	if !strings.Contains(string(got), `"kind":"redacted"`) {
+		t.Fatalf("sensitive value was not redacted: %s", got)
+	}
+}
+
+func TestCanonicalDeepCopiesNestedPointers(t *testing.T) {
+	doc := NewDocument(".")
+	doc.Modules = []Module{
+		{
+			Address: "",
+			Dir:     ".",
+			Status:  ModuleStatusRoot,
+			Variables: []Variable{
+				{
+					Name: "token",
+					Default: &Value{
+						Kind:    ValueKindString,
+						Literal: "original",
+						Range:   &SourceRange{Path: "variables.tf"},
+					},
+				},
+			},
+			Resources: []Resource{
+				{
+					Address:  "example_resource.main",
+					Type:     "example_resource",
+					Name:     "main",
+					Provider: &ProviderRef{LocalName: "example", Address: "provider.example", Range: &SourceRange{Path: "main.tf"}},
+				},
+			},
+		},
+	}
+
+	canonical := doc.Canonical()
+	canonical.Modules[0].Variables[0].Default.Literal = "changed"
+	canonical.Modules[0].Variables[0].Default.Range.Path = "changed.tf"
+	canonical.Modules[0].Resources[0].Provider.Address = "provider.changed"
+	canonical.Modules[0].Resources[0].Provider.Range.Path = "changed.tf"
+
+	if got := doc.Modules[0].Variables[0].Default.Literal; got != "original" {
+		t.Fatalf("canonical mutation changed original default literal = %v", got)
+	}
+	if got := doc.Modules[0].Variables[0].Default.Range.Path; got != "variables.tf" {
+		t.Fatalf("canonical mutation changed original default range = %q", got)
+	}
+	if got := doc.Modules[0].Resources[0].Provider.Address; got != "provider.example" {
+		t.Fatalf("canonical mutation changed original provider address = %q", got)
+	}
+	if got := doc.Modules[0].Resources[0].Provider.Range.Path; got != "main.tf" {
+		t.Fatalf("canonical mutation changed original provider range = %q", got)
+	}
+}

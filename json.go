@@ -143,7 +143,7 @@ func (v Value) MarshalJSON() ([]byte, error) {
 	c := v
 	c.References = cloneSlice(v.References)
 	sortReferences(c.References)
-	if c.Redacted || c.SensitiveCandidate != nil {
+	if c.Redacted || c.Sensitive || c.SensitiveCandidate != nil {
 		c.Kind = ValueKindRedacted
 		c.Literal = nil
 		c.Redacted = true

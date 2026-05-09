@@ -284,8 +284,8 @@ const (
 )
 
 // Value represents either a static literal, a symbolic expression, an unknown
-// value, or a redacted likely-secret literal. Public JSON never emits Literal
-// when SensitiveCandidate is true or Redacted is true.
+// value, or a redacted sensitive/likely-secret literal. Public JSON never emits
+// Literal when Sensitive, SensitiveCandidate, or Redacted is true.
 type Value struct {
 	Kind               ValueKind           `json:"kind"`
 	Literal            any                 `json:"literal,omitempty"`

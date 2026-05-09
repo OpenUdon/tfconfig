@@ -185,6 +185,58 @@ func TestLoadDirUsesTofuAlternativeAndOverrideOrdering(t *testing.T) {
 	}
 }
 
+func TestLoadDirDiagnosesDuplicateDeclarations(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "a.tf", `variable "name" { default = "first" }`)
+	writeTestFile(t, dir, "b.tf", `variable "name" { default = "second" }`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	mod := doc.Modules[0]
+	if len(mod.Diagnostics) != 1 || mod.Diagnostics[0].Code != "duplicate_declaration" {
+		t.Fatalf("duplicate declaration diagnostics = %#v, want one duplicate_declaration", mod.Diagnostics)
+	}
+	if len(mod.Variables) != 1 || mod.Variables[0].Default == nil || mod.Variables[0].Default.Literal != "first" {
+		t.Fatalf("duplicate declaration did not preserve first variable: %#v", mod.Variables)
+	}
+}
+
+func TestLoadDirMergesOverrideResourceAttributes(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+resource "example_resource" "main" {
+  a = "base-a"
+  b = "base-b"
+}
+`)
+	writeTestFile(t, dir, "override.tf", `
+resource "example_resource" "main" {
+  b = "override-b"
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	mod := doc.Modules[0]
+	if len(mod.Diagnostics) != 0 {
+		t.Fatalf("unexpected diagnostics: %#v", mod.Diagnostics)
+	}
+	if len(mod.Resources) != 1 {
+		t.Fatalf("resources = %d, want 1", len(mod.Resources))
+	}
+	got := map[string]any{}
+	for _, attr := range mod.Resources[0].Config {
+		got[attr.Path] = attr.Value.Literal
+	}
+	if got["a"] != "base-a" || got["b"] != "override-b" {
+		t.Fatalf("merged resource attrs = %#v, want a=base-a b=override-b", got)
+	}
+}
+
 func TestLoadDirDecodesJSONConfigFiles(t *testing.T) {
 	dir := t.TempDir()
 	writeTestFile(t, dir, "main.tf.json", `{
@@ -213,6 +265,106 @@ func TestLoadDirDecodesJSONConfigFiles(t *testing.T) {
 	}
 	if len(doc.SourceFiles) != 1 || doc.SourceFiles[0].Format != FileFormatJSON {
 		t.Fatalf("JSON source file not recorded: %#v", doc.SourceFiles)
+	}
+}
+
+func TestLoadDirPropagatesSensitiveDeclarationsToValues(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+variable "api_token" {
+  sensitive = true
+  default = "plain-token"
+}
+
+output "token" {
+  sensitive = true
+  value = "plain-output"
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	mod := doc.Modules[0]
+	if len(mod.Variables) != 1 || mod.Variables[0].Default == nil || !mod.Variables[0].Default.Sensitive {
+		t.Fatalf("sensitive variable default not marked sensitive: %#v", mod.Variables)
+	}
+	if len(mod.Outputs) != 1 || mod.Outputs[0].Value == nil || !mod.Outputs[0].Value.Sensitive {
+		t.Fatalf("sensitive output value not marked sensitive: %#v", mod.Outputs)
+	}
+
+	out, err := doc.JSONIndent("", "  ")
+	if err != nil {
+		t.Fatalf("JSON projection failed: %v", err)
+	}
+	if strings.Contains(string(out), "plain-token") || strings.Contains(string(out), "plain-output") {
+		t.Fatalf("sensitive declaration value leaked literal:\n%s", out)
+	}
+}
+
+func TestLoadDirDiagnosesUnsupportedNestedBlocks(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+resource "example_resource" "main" {
+  nested {
+    value = "hidden"
+  }
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	mod := doc.Modules[0]
+	if len(mod.Diagnostics) == 0 {
+		t.Fatalf("expected diagnostic for unsupported nested block")
+	}
+	if mod.Diagnostics[0].Severity != DiagnosticError {
+		t.Fatalf("nested block diagnostic = %#v, want error", mod.Diagnostics[0])
+	}
+}
+
+func TestLoadDirDecodesBareTestRunCommand(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `variable "name" { default = "x" }`)
+	writeTestFile(t, filepath.Join(dir, "tests"), "main.tftest.hcl", `
+run "basic" {
+  command = plan
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	mod := doc.Modules[0]
+	if len(mod.Tests) != 1 || len(mod.Tests[0].Runs) != 1 {
+		t.Fatalf("test runs not decoded: %#v", mod.Tests)
+	}
+	if got := mod.Tests[0].Runs[0].Command; got != "plan" {
+		t.Fatalf("test run command = %q, want plan", got)
+	}
+}
+
+func TestLoadDirSurfacesNestedTestDiagnostics(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `variable "name" { default = "x" }`)
+	writeTestFile(t, filepath.Join(dir, "tests"), "main.tftest.hcl", `
+run "basic" {
+  unsupported {
+    value = "hidden"
+  }
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	if len(doc.Modules[0].Diagnostics) == 0 {
+		t.Fatalf("expected test file nested diagnostics")
 	}
 }
 

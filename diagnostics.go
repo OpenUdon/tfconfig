@@ -81,3 +81,15 @@ func sourceRange(rng hcl.Range, sources map[string]sourceInfo) *SourceRange {
 	}
 	return out
 }
+
+func modelDiagnostic(severity DiagnosticSeverity, code, summary, detail, moduleAddress, address string, rng *SourceRange) Diagnostic {
+	return Diagnostic{
+		Severity:      severity,
+		Code:          code,
+		Summary:       summary,
+		Detail:        detail,
+		ModuleAddress: moduleAddress,
+		Address:       address,
+		Range:         rng,
+	}
+}

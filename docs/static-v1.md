@@ -58,7 +58,7 @@ The model includes:
 ## Value Projection
 
 Values distinguish literals, symbolic expressions, unknowns, collections, and
-redacted likely-secret literals.
+redacted sensitive or likely-secret literals.
 
 Symbolic references such as `var.api_token` remain expressions with references.
 Values marked as likely secret candidates are emitted as:
@@ -75,7 +75,7 @@ Values marked as likely secret candidates are emitted as:
 ```
 
 The public JSON projection does not emit raw literals for values marked as
-redacted or as sensitive candidates.
+sensitive, redacted, or as sensitive candidates.
 
 ## Determinism
 
