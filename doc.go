@@ -5,6 +5,11 @@
 // Go model as the primary API; Document.JSON and Document.JSONIndent provide the
 // deterministic public JSON projection for export, fixtures, and review.
 //
+// LoadDir is the public local-static loader entrypoint. It loads .tf, .tofu,
+// .tf.json, .tofu.json, override, and test files from a root module directory
+// without loading child module directories, downloading modules, or executing
+// Terraform/OpenTofu.
+//
 // The package is intentionally static analysis only. It must not execute
 // provider plugins, initialize backends, load state, refresh, plan, or apply.
 package tfconfig

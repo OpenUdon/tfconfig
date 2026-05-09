@@ -70,7 +70,7 @@ func (m *Module) Normalize() {
 	if m == nil {
 		return
 	}
-	sort.Strings(m.SourceFiles)
+	sort.Slice(m.RequiredVersions, func(i, j int) bool { return valueKey(m.RequiredVersions[i]) < valueKey(m.RequiredVersions[j]) })
 	sort.Slice(m.RequiredProviders, func(i, j int) bool {
 		return m.RequiredProviders[i].LocalName < m.RequiredProviders[j].LocalName
 	})

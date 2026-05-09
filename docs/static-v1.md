@@ -14,6 +14,17 @@ The primary integration boundary is the Go API in package `tfconfig`.
 Deterministic JSON is an export/debug projection of the same model and is safe
 to write to review artifacts.
 
+`LoadDir` is the first local-static loader entrypoint:
+
+```go
+doc, err := tfconfig.LoadDir("./tf")
+```
+
+It discovers `.tf`, `.tofu`, `.tf.json`, `.tofu.json`, override files, and
+module test files in the root module directory. Module call facts are decoded,
+but child module directories are not loaded until the local module tree
+milestone.
+
 The top-level document uses:
 
 ```json

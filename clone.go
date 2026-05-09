@@ -13,6 +13,7 @@ func cloneModules(in []Module) []Module {
 	out := cloneSlice(in)
 	for i := range out {
 		out[i].SourceFiles = cloneSlice(out[i].SourceFiles)
+		out[i].RequiredVersions = cloneSlice(out[i].RequiredVersions)
 		out[i].RequiredProviders = cloneSlice(out[i].RequiredProviders)
 		out[i].ProviderConfigs = cloneProviderConfigs(out[i].ProviderConfigs)
 		out[i].Variables = cloneVariables(out[i].Variables)

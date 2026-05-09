@@ -92,6 +92,7 @@ type Module struct {
 	ParentAddress     string                `json:"parent_address,omitempty"`
 	Status            ModuleStatus          `json:"status"`
 	SourceFiles       []string              `json:"source_files,omitempty"`
+	RequiredVersions  []Value               `json:"required_versions,omitempty"`
 	RequiredProviders []ProviderRequirement `json:"required_providers,omitempty"`
 	ProviderConfigs   []ProviderConfig      `json:"provider_configs,omitempty"`
 	Variables         []Variable            `json:"variables,omitempty"`

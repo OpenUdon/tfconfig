@@ -21,6 +21,24 @@ fixtures and review artifacts.
 This package is static analysis only. It does not run provider plugins,
 initialize backends, load state, refresh, plan, or apply.
 
+## Usage
+
+Use the Go API as the primary integration boundary:
+
+```go
+doc, err := tfconfig.LoadDir("./tf")
+if err != nil {
+    // setup error outside normal configuration diagnostics
+}
+```
+
+Parser and decode diagnostics are recorded in the returned document. The
+deterministic JSON projection is available for fixtures and review artifacts:
+
+```bash
+go run ./cmd/tfconfig --config-dir ./tf
+```
+
 OpenTofu-derived files are MPL-2.0-covered and must preserve their upstream
 headers. See [AGENTS.md](AGENTS.md), [UPSTREAM.md](UPSTREAM.md), and
 [THIRD_PARTY.md](THIRD_PARTY.md).
