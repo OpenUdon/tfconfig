@@ -37,3 +37,22 @@ go vet ./...
 
 GitHub Actions also includes a weekly/manual workflow that runs the sync and
 opens a review-required pull request when files change.
+
+The workflow is scheduled to run every Monday at 06:17 UTC:
+
+```yaml
+schedule:
+  - cron: "17 6 * * 1"
+```
+
+You can also run it manually from GitHub:
+
+1. Open `OpenUdon/tfconfig` on GitHub.
+2. Go to **Actions**.
+3. Select **Sync OpenTofu Static Config Sources**.
+4. Click **Run workflow**.
+5. Leave `opentofu_ref` as `main`, or enter a specific OpenTofu tag or commit.
+
+If allowlisted OpenTofu files changed, the workflow opens or updates a
+review-required sync pull request. If no pull request appears, the mirror is
+already current for the selected OpenTofu ref.
