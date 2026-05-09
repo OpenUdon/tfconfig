@@ -83,6 +83,43 @@
           "address": "example_resource.main",
           "type": "example_resource",
           "name": "main",
+          "config": [
+            {
+              "path": "nested.value",
+              "value": {
+                "kind": "string",
+                "literal": "unsupported",
+                "range": {
+                  "source_id": "main.tf",
+                  "path": "main.tf",
+                  "start": {
+                    "line": 11,
+                    "column": 13,
+                    "byte": 143
+                  },
+                  "end": {
+                    "line": 11,
+                    "column": 26,
+                    "byte": 156
+                  }
+                }
+              },
+              "range": {
+                "source_id": "main.tf",
+                "path": "main.tf",
+                "start": {
+                  "line": 11,
+                  "column": 5,
+                  "byte": 135
+                },
+                "end": {
+                  "line": 11,
+                  "column": 26,
+                  "byte": 156
+                }
+              }
+            }
+          ],
           "range": {
             "source_id": "main.tf",
             "path": "main.tf",
@@ -252,26 +289,6 @@
               "line": 1,
               "column": 17,
               "byte": 16
-            }
-          }
-        },
-        {
-          "severity": "error",
-          "code": "unexpected_nested_block",
-          "summary": "Unexpected \"nested\" block",
-          "detail": "Blocks are not allowed here.",
-          "range": {
-            "source_id": "main.tf",
-            "path": "main.tf",
-            "start": {
-              "line": 10,
-              "column": 3,
-              "byte": 122
-            },
-            "end": {
-              "line": 10,
-              "column": 9,
-              "byte": 128
             }
           }
         }

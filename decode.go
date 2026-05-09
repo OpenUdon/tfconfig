@@ -150,7 +150,7 @@ func decodeRequiredProvidersBlock(block *hcl.Block, sources map[string]sourceInf
 
 func decodeProviderBlock(block *hcl.Block, sources map[string]sourceInfo) (ProviderConfig, []Diagnostic) {
 	name := block.Labels[0]
-	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
+	attrs, config, diags := decodeProviderBodyConfig(block.Body, reservedProviderAttrs(), nil, sources)
 	cfg := ProviderConfig{
 		LocalName: name,
 		Address:   providerAddress(name, ""),
@@ -162,7 +162,7 @@ func decodeProviderBlock(block *hcl.Block, sources map[string]sourceInfo) (Provi
 			cfg.Address = providerAddress(name, alias)
 		}
 	}
-	cfg.Config = attributesFromMap(attrs, reservedProviderAttrs(), sources)
+	cfg.Config = config
 	cfg.References = referencesFromAttributes(cfg.Config)
 	return cfg, diags
 }
@@ -233,7 +233,7 @@ func decodeOutputBlock(block *hcl.Block, sources map[string]sourceInfo) (Output,
 
 func decodeResourceBlock(block *hcl.Block, sources map[string]sourceInfo) (Resource, []Diagnostic) {
 	typ, name := block.Labels[0], block.Labels[1]
-	attrs, diags := attributesWithAllowedBlocks(block.Body, []hcl.BlockHeaderSchema{{Type: "lifecycle"}}, sources)
+	attrs, config, diags := decodeProviderBodyConfig(block.Body, reservedResourceAttrs(), []hcl.BlockHeaderSchema{{Type: "lifecycle"}}, sources)
 	res := Resource{
 		Address: address(typ, name),
 		Type:    typ,
@@ -256,7 +256,7 @@ func decodeResourceBlock(block *hcl.Block, sources map[string]sourceInfo) (Resou
 		res.ForEach = &val
 		res.References = append(res.References, val.References...)
 	}
-	res.Config = attributesFromMap(attrs, reservedResourceAttrs(), sources)
+	res.Config = config
 	res.References = append(res.References, referencesFromAttributes(res.Config)...)
 	lifecycle, lifecycleDiags := decodeLifecycle(block.Body, sources)
 	diags = append(diags, lifecycleDiags...)
@@ -266,7 +266,7 @@ func decodeResourceBlock(block *hcl.Block, sources map[string]sourceInfo) (Resou
 
 func decodeDataSourceBlock(block *hcl.Block, sources map[string]sourceInfo) (DataSource, []Diagnostic) {
 	typ, name := block.Labels[0], block.Labels[1]
-	attrs, diags := attributesWithAllowedBlocks(block.Body, nil, sources)
+	attrs, config, diags := decodeProviderBodyConfig(block.Body, reservedResourceAttrs(), nil, sources)
 	ds := DataSource{
 		Address: "data." + address(typ, name),
 		Type:    typ,
@@ -289,7 +289,7 @@ func decodeDataSourceBlock(block *hcl.Block, sources map[string]sourceInfo) (Dat
 		ds.ForEach = &val
 		ds.References = append(ds.References, val.References...)
 	}
-	ds.Config = attributesFromMap(attrs, reservedResourceAttrs(), sources)
+	ds.Config = config
 	ds.References = append(ds.References, referencesFromAttributes(ds.Config)...)
 	return ds, diags
 }
@@ -463,6 +463,101 @@ func attributesFromMap(attrs hcl.Attributes, reserved map[string]bool, sources m
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
 	return out
+}
+
+func decodeProviderBodyConfig(body hcl.Body, reserved map[string]bool, allowedBlocks []hcl.BlockHeaderSchema, sources map[string]sourceInfo) (hcl.Attributes, []Attribute, []Diagnostic) {
+	attrs, nested, diags := attributesAndNestedBlocks(body, allowedBlocks, sources)
+	config := attributesFromMap(attrs, reserved, sources)
+	config = append(config, nested...)
+	sort.Slice(config, func(i, j int) bool { return config[i].Path < config[j].Path })
+	return attrs, config, diags
+}
+
+func attributesAndNestedBlocks(body hcl.Body, allowedBlocks []hcl.BlockHeaderSchema, sources map[string]sourceInfo) (hcl.Attributes, []Attribute, []Diagnostic) {
+	syntaxBody, ok := body.(*hclsyntax.Body)
+	if !ok {
+		attrs, diags := attributesWithAllowedBlocks(body, allowedBlocks, sources)
+		return attrs, nil, diags
+	}
+	attrs := make(hcl.Attributes, len(syntaxBody.Attributes))
+	for name, attr := range syntaxBody.Attributes {
+		attrs[name] = attr.AsHCLAttribute()
+	}
+	return attrs, nestedBlockAttributes(syntaxBody.Blocks, allowedBlocks, "", sources), nil
+}
+
+func nestedBlockAttributes(blocks hclsyntax.Blocks, allowedBlocks []hcl.BlockHeaderSchema, prefix string, sources map[string]sourceInfo) []Attribute {
+	totals := map[string]int{}
+	for _, block := range blocks {
+		if allowedBlockType(block.Type, allowedBlocks) {
+			continue
+		}
+		totals[nestedBlockIdentity(block)]++
+	}
+
+	seen := map[string]int{}
+	var out []Attribute
+	for _, block := range blocks {
+		if allowedBlockType(block.Type, allowedBlocks) {
+			continue
+		}
+		identity := nestedBlockIdentity(block)
+		index := seen[identity]
+		seen[identity]++
+		blockPath := nestedBlockPath(prefix, block, index, totals[identity] > 1)
+		blockAttrs := flattenNestedBlock(blockPath, block, sources)
+		out = append(out, blockAttrs...)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out
+}
+
+func flattenNestedBlock(prefix string, block *hclsyntax.Block, sources map[string]sourceInfo) []Attribute {
+	var out []Attribute
+	for name, attr := range block.Body.Attributes {
+		path := joinAttrPath(prefix, name)
+		out = append(out, Attribute{
+			Path:  path,
+			Value: valueFromExpr(attr.Expr, path, sources),
+			Range: sourceRange(attr.SrcRange, sources),
+		})
+	}
+	out = append(out, nestedBlockAttributes(block.Body.Blocks, nil, prefix, sources)...)
+	if len(out) == 0 {
+		out = append(out, Attribute{
+			Path: prefix,
+			Value: Value{
+				Kind:    ValueKindCollection,
+				Literal: map[string]any{},
+				Range:   sourceRange(block.Range(), sources),
+			},
+			Range: sourceRange(block.Range(), sources),
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Path < out[j].Path })
+	return out
+}
+
+func nestedBlockIdentity(block *hclsyntax.Block) string {
+	return block.Type + "\x00" + strings.Join(block.Labels, "\x00")
+}
+
+func nestedBlockPath(parent string, block *hclsyntax.Block, index int, repeated bool) string {
+	parts := append([]string{block.Type}, block.Labels...)
+	name := strings.Join(parts, ".")
+	if repeated {
+		name = fmt.Sprintf("%s[%d]", name, index)
+	}
+	return joinAttrPath(parent, name)
+}
+
+func allowedBlockType(blockType string, allowedBlocks []hcl.BlockHeaderSchema) bool {
+	for _, allowed := range allowedBlocks {
+		if allowed.Type == blockType {
+			return true
+		}
+	}
+	return false
 }
 
 func attributesWithAllowedBlocks(body hcl.Body, allowedBlocks []hcl.BlockHeaderSchema, sources map[string]sourceInfo) (hcl.Attributes, []Diagnostic) {

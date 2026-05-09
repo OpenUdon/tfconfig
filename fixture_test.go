@@ -71,6 +71,44 @@ func TestFixtureCorpusCoversM6Scenarios(t *testing.T) {
 	}
 }
 
+func TestOpenTofuEquivalenceFixtureCorpus(t *testing.T) {
+	root := os.Getenv("OPENTOFU_EQUIVALENCE_TESTS")
+	if root == "" {
+		root = filepath.Join("..", "opentofu", "testing", "equivalence-tests", "tests")
+	}
+	if info, err := os.Stat(root); err != nil || !info.IsDir() {
+		t.Skipf("OpenTofu equivalence fixture corpus not available at %s", root)
+	}
+
+	fixtures, err := filepath.Glob(filepath.Join(root, "*"))
+	if err != nil {
+		t.Fatalf("glob OpenTofu equivalence fixtures: %v", err)
+	}
+	if len(fixtures) != 49 {
+		t.Fatalf("OpenTofu equivalence fixture count = %d, want 49", len(fixtures))
+	}
+
+	for _, fixtureDir := range fixtures {
+		fixtureDir := fixtureDir
+		info, err := os.Stat(fixtureDir)
+		if err != nil {
+			t.Fatalf("stat %s: %v", fixtureDir, err)
+		}
+		if !info.IsDir() {
+			continue
+		}
+		t.Run(filepath.Base(fixtureDir), func(t *testing.T) {
+			doc, err := LoadDir(fixtureDir)
+			if err != nil {
+				t.Fatalf("LoadDir(%s) failed: %v", fixtureDir, err)
+			}
+			if errors := documentErrorDiagnostics(doc); len(errors) != 0 {
+				t.Fatalf("LoadDir(%s) returned error diagnostics: %#v", fixtureDir, errors)
+			}
+		})
+	}
+}
+
 func TestFixtureGoldensDoNotLeakKnownSecrets(t *testing.T) {
 	matches, err := filepath.Glob(filepath.Join("testdata", "fixtures", "*", "expected.json"))
 	if err != nil {
@@ -87,4 +125,21 @@ func TestFixtureGoldensDoNotLeakKnownSecrets(t *testing.T) {
 			}
 		}
 	}
+}
+
+func documentErrorDiagnostics(doc Document) []Diagnostic {
+	var out []Diagnostic
+	for _, diag := range doc.Diagnostics {
+		if diag.Severity == DiagnosticError {
+			out = append(out, diag)
+		}
+	}
+	for _, mod := range doc.Modules {
+		for _, diag := range mod.Diagnostics {
+			if diag.Severity == DiagnosticError {
+				out = append(out, diag)
+			}
+		}
+	}
+	return out
 }

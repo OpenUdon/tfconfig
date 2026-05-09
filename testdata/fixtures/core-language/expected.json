@@ -2084,26 +2084,6 @@
       "diagnostics": [
         {
           "severity": "error",
-          "code": "unexpected_lifecycle_block",
-          "summary": "Unexpected \"lifecycle\" block",
-          "detail": "Blocks are not allowed here.",
-          "range": {
-            "source_id": "main.tf",
-            "path": "main.tf",
-            "start": {
-              "line": 12,
-              "column": 3,
-              "byte": 233
-            },
-            "end": {
-              "line": 12,
-              "column": 12,
-              "byte": 242
-            }
-          }
-        },
-        {
-          "severity": "error",
           "code": "unexpected_precondition_block",
           "summary": "Unexpected \"precondition\" block",
           "detail": "Blocks are not allowed here.",

@@ -599,12 +599,18 @@ output "token" {
 	}
 }
 
-func TestLoadDirDiagnosesUnsupportedNestedBlocks(t *testing.T) {
+func TestLoadDirPreservesNestedProviderBlocks(t *testing.T) {
 	dir := t.TempDir()
 	writeTestFile(t, dir, "main.tf", `
 resource "example_resource" "main" {
   nested {
     value = "hidden"
+  }
+  repeated {
+    id = "one"
+  }
+  repeated {
+    id = "two"
   }
 }
 `)
@@ -614,11 +620,23 @@ resource "example_resource" "main" {
 		t.Fatalf("LoadDir failed: %v", err)
 	}
 	mod := doc.Modules[0]
-	if len(mod.Diagnostics) == 0 {
-		t.Fatalf("expected diagnostic for unsupported nested block")
+	if len(mod.Diagnostics) != 0 {
+		t.Fatalf("nested provider blocks should not produce diagnostics: %#v", mod.Diagnostics)
 	}
-	if mod.Diagnostics[0].Severity != DiagnosticError {
-		t.Fatalf("nested block diagnostic = %#v, want error", mod.Diagnostics[0])
+	got := map[string]string{}
+	for _, attr := range mod.Resources[0].Config {
+		if text, ok := attr.Value.Literal.(string); ok {
+			got[attr.Path] = text
+		}
+	}
+	for path, want := range map[string]string{
+		"nested.value":   "hidden",
+		"repeated[0].id": "one",
+		"repeated[1].id": "two",
+	} {
+		if got[path] != want {
+			t.Fatalf("nested provider block attribute %s = %q, want %q; config=%#v", path, got[path], want, mod.Resources[0].Config)
+		}
 	}
 }
 

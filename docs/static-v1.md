@@ -59,6 +59,14 @@ The model includes:
 - moved, import, removed, check, and test facts;
 - parser diagnostics distinct from later OpenUdon conversion diagnostics.
 
+Provider, managed resource, and data source bodies are treated as schema-less
+provider configuration surfaces. Unknown nested provider blocks are preserved as
+dotted config attribute paths rather than rejected, because `tfconfig` does not
+execute provider plugins or load provider schemas. Repeated nested blocks use
+source-order indexes, for example `first_block[0].id` and `first_block[1].id`.
+The built-in Terraform/OpenTofu meta blocks that `tfconfig` models directly,
+such as resource `lifecycle`, remain represented in their explicit model fields.
+
 ## Value Projection
 
 Values distinguish literals, symbolic expressions, unknowns, collections, and
