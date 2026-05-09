@@ -109,6 +109,69 @@ func TestOpenTofuEquivalenceFixtureCorpus(t *testing.T) {
 	}
 }
 
+func TestOpenTofuValidModulesFixtureCorpus(t *testing.T) {
+	root := os.Getenv("OPENTOFU_VALID_MODULES")
+	if root == "" {
+		root = filepath.Join("..", "opentofu", "internal", "configs", "testdata", "valid-modules")
+	}
+	if info, err := os.Stat(root); err != nil || !info.IsDir() {
+		t.Skipf("OpenTofu valid-modules fixture corpus not available at %s", root)
+	}
+
+	fixtures, err := filepath.Glob(filepath.Join(root, "*"))
+	if err != nil {
+		t.Fatalf("glob OpenTofu valid-modules fixtures: %v", err)
+	}
+	if len(fixtures) != 34 {
+		t.Fatalf("OpenTofu valid-modules fixture count = %d, want 34", len(fixtures))
+	}
+	expectedErrorCodes := map[string][]string{
+		// This upstream config loader fixture is valid without loading child
+		// modules. tfconfig intentionally attempts local module loading and
+		// reports the missing fixture directory as a static diagnostic.
+		"override-module": {"module_source_missing"},
+	}
+
+	for _, fixtureDir := range fixtures {
+		fixtureDir := fixtureDir
+		info, err := os.Stat(fixtureDir)
+		if err != nil {
+			t.Fatalf("stat %s: %v", fixtureDir, err)
+		}
+		if !info.IsDir() {
+			continue
+		}
+		t.Run(filepath.Base(fixtureDir), func(t *testing.T) {
+			doc, err := LoadDir(fixtureDir)
+			if err != nil {
+				t.Fatalf("LoadDir(%s) failed: %v", fixtureDir, err)
+			}
+			name := filepath.Base(fixtureDir)
+			errors := documentErrorDiagnostics(doc)
+			if wantCodes, ok := expectedErrorCodes[name]; ok {
+				if !diagnosticCodesEqual(errors, wantCodes) {
+					t.Fatalf("LoadDir(%s) error diagnostics = %#v, want codes %v", fixtureDir, errors, wantCodes)
+				}
+				return
+			}
+			if len(errors) != 0 {
+				t.Fatalf("LoadDir(%s) returned error diagnostics: %#v", fixtureDir, errors)
+			}
+		})
+	}
+}
+
+func diagnosticCodesEqual(diags []Diagnostic, want []string) bool {
+	if len(diags) != len(want) {
+		return false
+	}
+	got := make([]string, len(diags))
+	for i, diag := range diags {
+		got[i] = diag.Code
+	}
+	return strings.Join(got, "\x00") == strings.Join(want, "\x00")
+}
+
 func TestFixtureGoldensDoNotLeakKnownSecrets(t *testing.T) {
 	matches, err := filepath.Glob(filepath.Join("testdata", "fixtures", "*", "expected.json"))
 	if err != nil {

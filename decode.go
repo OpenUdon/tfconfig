@@ -19,6 +19,7 @@ var configFileSchema = &hcl.BodySchema{
 		{Type: "module", LabelNames: []string{"name"}},
 		{Type: "resource", LabelNames: []string{"type", "name"}},
 		{Type: "data", LabelNames: []string{"type", "name"}},
+		{Type: "ephemeral", LabelNames: []string{"type", "name"}},
 		{Type: "moved"},
 		{Type: "import"},
 		{Type: "removed"},
@@ -32,6 +33,9 @@ var terraformBlockSchema = &hcl.BodySchema{
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "required_providers"},
+		{Type: "backend", LabelNames: []string{"type"}},
+		{Type: "cloud"},
+		{Type: "provider_meta", LabelNames: []string{"provider"}},
 	},
 }
 
@@ -43,7 +47,7 @@ func decodeConfigFile(mod *Module, file discoveredFile, body hcl.Body, sources m
 	for _, block := range content.Blocks {
 		switch block.Type {
 		case "terraform":
-			out = append(out, decodeTerraformBlock(mod, block, sources)...)
+			out = append(out, decodeTerraformBlock(mod, block, override, sources)...)
 		case "provider":
 			cfg, cfgDiags := decodeProviderBlock(block, sources)
 			out = append(out, cfgDiags...)
@@ -70,6 +74,10 @@ func decodeConfigFile(mod *Module, file discoveredFile, body hcl.Body, sources m
 			ds, dsDiags := decodeDataSourceBlock(block, sources)
 			out = append(out, dsDiags...)
 			out = append(out, upsertDataSource(mod, ds, override)...)
+		case "ephemeral":
+			eph, ephDiags := decodeEphemeralBlock(block, sources)
+			out = append(out, ephDiags...)
+			out = append(out, upsertEphemeralResource(mod, eph, override)...)
 		case "module":
 			call, callDiags := decodeModuleCallBlock(block, sources)
 			out = append(out, callDiags...)
@@ -105,22 +113,60 @@ func decodeConfigFile(mod *Module, file discoveredFile, body hcl.Body, sources m
 	return out
 }
 
-func decodeTerraformBlock(mod *Module, block *hcl.Block, sources map[string]sourceInfo) []Diagnostic {
+func decodeTerraformBlock(mod *Module, block *hcl.Block, override bool, sources map[string]sourceInfo) []Diagnostic {
 	content, diags := block.Body.Content(terraformBlockSchema)
 	out := convertDiagnostics(diags, mod.Address, "", sources)
 	if attr, ok := content.Attributes["required_version"]; ok {
 		mod.RequiredVersions = append(mod.RequiredVersions, valueFromExpr(attr.Expr, "required_version", sources))
 	}
 	for _, inner := range content.Blocks {
-		if inner.Type == "required_providers" {
+		switch inner.Type {
+		case "required_providers":
 			reqs, reqDiags := decodeRequiredProvidersBlock(inner, sources)
 			out = append(out, reqDiags...)
 			for _, req := range reqs {
-				out = append(out, upsertProviderRequirement(mod, req)...)
+				out = append(out, upsertProviderRequirement(mod, req, override)...)
 			}
+		case "backend":
+			mod.Backends = append(mod.Backends, decodeBackendBlock(inner, sources))
+		case "cloud":
+			cloud := decodeCloudBlock(inner, sources)
+			mod.Cloud = &cloud
+		case "provider_meta":
+			mod.ProviderMetas = append(mod.ProviderMetas, decodeProviderMetaBlock(inner, sources))
 		}
 	}
 	return out
+}
+
+func decodeBackendBlock(block *hcl.Block, sources map[string]sourceInfo) BackendConfig {
+	_, attrs, _ := decodeProviderBodyConfig(block.Body, nil, nil, sources)
+	backend := BackendConfig{
+		Type:       block.Labels[0],
+		Config:     attrs,
+		References: referencesFromAttributes(attrs),
+		Range:      sourceRange(block.DefRange, sources),
+	}
+	return backend
+}
+
+func decodeCloudBlock(block *hcl.Block, sources map[string]sourceInfo) CloudConfig {
+	_, attrs, _ := decodeProviderBodyConfig(block.Body, nil, nil, sources)
+	return CloudConfig{
+		Config:     attrs,
+		References: referencesFromAttributes(attrs),
+		Range:      sourceRange(block.DefRange, sources),
+	}
+}
+
+func decodeProviderMetaBlock(block *hcl.Block, sources map[string]sourceInfo) ProviderMeta {
+	_, attrs, _ := decodeProviderBodyConfig(block.Body, nil, nil, sources)
+	return ProviderMeta{
+		Provider:   block.Labels[0],
+		Config:     attrs,
+		References: referencesFromAttributes(attrs),
+		Range:      sourceRange(block.DefRange, sources),
+	}
 }
 
 func decodeRequiredProvidersBlock(block *hcl.Block, sources map[string]sourceInfo) ([]ProviderRequirement, []Diagnostic) {
@@ -292,6 +338,36 @@ func decodeDataSourceBlock(block *hcl.Block, sources map[string]sourceInfo) (Dat
 	ds.Config = config
 	ds.References = append(ds.References, referencesFromAttributes(ds.Config)...)
 	return ds, diags
+}
+
+func decodeEphemeralBlock(block *hcl.Block, sources map[string]sourceInfo) (EphemeralResource, []Diagnostic) {
+	typ, name := block.Labels[0], block.Labels[1]
+	attrs, config, diags := decodeProviderBodyConfig(block.Body, reservedResourceAttrs(), nil, sources)
+	eph := EphemeralResource{
+		Address: "ephemeral." + address(typ, name),
+		Type:    typ,
+		Name:    name,
+		Range:   sourceRange(block.DefRange, sources),
+	}
+	if attr, ok := attrs["provider"]; ok {
+		eph.Provider = providerRefFromExpr(attr.Expr, sources)
+	}
+	if attr, ok := attrs["depends_on"]; ok {
+		eph.DependsOn = referencesFromExpr(attr.Expr, sources)
+	}
+	if attr, ok := attrs["count"]; ok {
+		val := valueFromExpr(attr.Expr, "count", sources)
+		eph.Count = &val
+		eph.References = append(eph.References, val.References...)
+	}
+	if attr, ok := attrs["for_each"]; ok {
+		val := valueFromExpr(attr.Expr, "for_each", sources)
+		eph.ForEach = &val
+		eph.References = append(eph.References, val.References...)
+	}
+	eph.Config = config
+	eph.References = append(eph.References, referencesFromAttributes(eph.Config)...)
+	return eph, diags
 }
 
 func decodeModuleCallBlock(block *hcl.Block, sources map[string]sourceInfo) (ModuleCall, []Diagnostic) {
@@ -708,9 +784,13 @@ func referencesFromAttributes(attrs []Attribute) []Reference {
 	return refs
 }
 
-func upsertProviderRequirement(mod *Module, req ProviderRequirement) []Diagnostic {
+func upsertProviderRequirement(mod *Module, req ProviderRequirement, override bool) []Diagnostic {
 	for i := range mod.RequiredProviders {
 		if mod.RequiredProviders[i].LocalName == req.LocalName {
+			if override {
+				mod.RequiredProviders[i] = req
+				return nil
+			}
 			return []Diagnostic{duplicateDiag("provider requirement", req.LocalName, req.Range)}
 		}
 	}
@@ -817,6 +897,23 @@ func upsertDataSource(mod *Module, ds DataSource, override bool) []Diagnostic {
 		return []Diagnostic{missingBaseOverrideDiag("data source", ds.Address, ds.Range)}
 	}
 	mod.DataSources = append(mod.DataSources, ds)
+	return nil
+}
+
+func upsertEphemeralResource(mod *Module, eph EphemeralResource, override bool) []Diagnostic {
+	for i := range mod.EphemeralResources {
+		if mod.EphemeralResources[i].Address == eph.Address {
+			if !override {
+				return []Diagnostic{duplicateDiag("ephemeral resource", eph.Address, eph.Range)}
+			}
+			mergeEphemeralResource(&mod.EphemeralResources[i], eph)
+			return nil
+		}
+	}
+	if override {
+		return []Diagnostic{missingBaseOverrideDiag("ephemeral resource", eph.Address, eph.Range)}
+	}
+	mod.EphemeralResources = append(mod.EphemeralResources, eph)
 	return nil
 }
 
@@ -932,6 +1029,25 @@ func mergeResource(dst *Resource, src Resource) {
 }
 
 func mergeDataSource(dst *DataSource, src DataSource) {
+	if src.Provider != nil {
+		dst.Provider = src.Provider
+	}
+	dst.Config = mergeAttributes(dst.Config, src.Config)
+	if len(src.DependsOn) > 0 {
+		dst.DependsOn = src.DependsOn
+	}
+	if src.Count != nil {
+		dst.Count = src.Count
+	}
+	if src.ForEach != nil {
+		dst.ForEach = src.ForEach
+	}
+	dst.References = append(referencesFromAttributes(dst.Config), valueRefs(dst.Count)...)
+	dst.References = append(dst.References, valueRefs(dst.ForEach)...)
+	dst.Range = src.Range
+}
+
+func mergeEphemeralResource(dst *EphemeralResource, src EphemeralResource) {
 	if src.Provider != nil {
 		dst.Provider = src.Provider
 	}

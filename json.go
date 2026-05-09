@@ -74,6 +74,20 @@ func (m *Module) Normalize() {
 	sort.Slice(m.RequiredProviders, func(i, j int) bool {
 		return m.RequiredProviders[i].LocalName < m.RequiredProviders[j].LocalName
 	})
+	sort.Slice(m.Backends, func(i, j int) bool { return m.Backends[i].Type < m.Backends[j].Type })
+	for i := range m.Backends {
+		sortAttributes(m.Backends[i].Config)
+		sortReferences(m.Backends[i].References)
+	}
+	if m.Cloud != nil {
+		sortAttributes(m.Cloud.Config)
+		sortReferences(m.Cloud.References)
+	}
+	sort.Slice(m.ProviderMetas, func(i, j int) bool { return m.ProviderMetas[i].Provider < m.ProviderMetas[j].Provider })
+	for i := range m.ProviderMetas {
+		sortAttributes(m.ProviderMetas[i].Config)
+		sortReferences(m.ProviderMetas[i].References)
+	}
 	sort.Slice(m.ProviderConfigs, func(i, j int) bool {
 		return m.ProviderConfigs[i].Address < m.ProviderConfigs[j].Address
 	})
@@ -107,6 +121,12 @@ func (m *Module) Normalize() {
 		sortReferences(m.DataSources[i].DependsOn)
 		sortReferences(m.DataSources[i].References)
 	}
+	sort.Slice(m.EphemeralResources, func(i, j int) bool { return m.EphemeralResources[i].Address < m.EphemeralResources[j].Address })
+	for i := range m.EphemeralResources {
+		sortAttributes(m.EphemeralResources[i].Config)
+		sortReferences(m.EphemeralResources[i].DependsOn)
+		sortReferences(m.EphemeralResources[i].References)
+	}
 	sort.Slice(m.ModuleCalls, func(i, j int) bool { return m.ModuleCalls[i].Address < m.ModuleCalls[j].Address })
 	for i := range m.ModuleCalls {
 		sortAttributes(m.ModuleCalls[i].Inputs)
@@ -128,9 +148,15 @@ func (m *Module) Normalize() {
 	}
 	sort.Slice(m.Tests, func(i, j int) bool { return m.Tests[i].Path < m.Tests[j].Path })
 	for i := range m.Tests {
+		sortAttributes(m.Tests[i].Variables)
 		sort.Slice(m.Tests[i].Runs, func(a, b int) bool { return m.Tests[i].Runs[a].Name < m.Tests[i].Runs[b].Name })
 		for j := range m.Tests[i].Runs {
+			if m.Tests[i].Runs[j].Module != nil {
+				sortAttributes(m.Tests[i].Runs[j].Module.Config)
+				sortReferences(m.Tests[i].Runs[j].Module.References)
+			}
 			sortAttributes(m.Tests[i].Runs[j].Variables)
+			sortAttributes(m.Tests[i].Runs[j].PlanOptions)
 			normalizeCheckRules(m.Tests[i].Runs[j].Assertions)
 		}
 	}

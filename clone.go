@@ -16,12 +16,16 @@ func cloneModules(in []Module) []Module {
 		out[i].SourceFiles = cloneSlice(out[i].SourceFiles)
 		out[i].RequiredVersions = cloneValues(out[i].RequiredVersions)
 		out[i].RequiredProviders = cloneProviderRequirements(out[i].RequiredProviders)
+		out[i].Backends = cloneBackendConfigs(out[i].Backends)
+		out[i].Cloud = cloneCloudConfig(out[i].Cloud)
+		out[i].ProviderMetas = cloneProviderMetas(out[i].ProviderMetas)
 		out[i].ProviderConfigs = cloneProviderConfigs(out[i].ProviderConfigs)
 		out[i].Variables = cloneVariables(out[i].Variables)
 		out[i].Locals = cloneLocals(out[i].Locals)
 		out[i].Outputs = cloneOutputs(out[i].Outputs)
 		out[i].Resources = cloneResources(out[i].Resources)
 		out[i].DataSources = cloneDataSources(out[i].DataSources)
+		out[i].EphemeralResources = cloneEphemeralResources(out[i].EphemeralResources)
 		out[i].ModuleCalls = cloneModuleCalls(out[i].ModuleCalls)
 		out[i].Moved = cloneMoved(out[i].Moved)
 		out[i].Imports = cloneImports(out[i].Imports)
@@ -38,6 +42,37 @@ func cloneProviderRequirements(in []ProviderRequirement) []ProviderRequirement {
 	out := cloneSlice(in)
 	for i := range out {
 		out[i].VersionConstraints = cloneSlice(out[i].VersionConstraints)
+		out[i].Range = cloneSourceRange(out[i].Range)
+	}
+	return out
+}
+
+func cloneBackendConfigs(in []BackendConfig) []BackendConfig {
+	out := cloneSlice(in)
+	for i := range out {
+		out[i].Config = cloneAttributes(out[i].Config)
+		out[i].References = cloneReferences(out[i].References)
+		out[i].Range = cloneSourceRange(out[i].Range)
+	}
+	return out
+}
+
+func cloneCloudConfig(in *CloudConfig) *CloudConfig {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	out.Config = cloneAttributes(out.Config)
+	out.References = cloneReferences(out.References)
+	out.Range = cloneSourceRange(out.Range)
+	return &out
+}
+
+func cloneProviderMetas(in []ProviderMeta) []ProviderMeta {
+	out := cloneSlice(in)
+	for i := range out {
+		out[i].Config = cloneAttributes(out[i].Config)
+		out[i].References = cloneReferences(out[i].References)
 		out[i].Range = cloneSourceRange(out[i].Range)
 	}
 	return out
@@ -115,6 +150,20 @@ func cloneDataSources(in []DataSource) []DataSource {
 	return out
 }
 
+func cloneEphemeralResources(in []EphemeralResource) []EphemeralResource {
+	out := cloneSlice(in)
+	for i := range out {
+		out[i].Provider = cloneProviderRef(out[i].Provider)
+		out[i].Config = cloneAttributes(out[i].Config)
+		out[i].DependsOn = cloneReferences(out[i].DependsOn)
+		out[i].Count = cloneValuePtr(out[i].Count)
+		out[i].ForEach = cloneValuePtr(out[i].ForEach)
+		out[i].References = cloneReferences(out[i].References)
+		out[i].Range = cloneSourceRange(out[i].Range)
+	}
+	return out
+}
+
 func cloneModuleCalls(in []ModuleCall) []ModuleCall {
 	out := cloneSlice(in)
 	for i := range out {
@@ -169,15 +218,30 @@ func cloneChecks(in []CheckBlock) []CheckBlock {
 func cloneTests(in []TestFile) []TestFile {
 	out := cloneSlice(in)
 	for i := range out {
+		out[i].Variables = cloneAttributes(out[i].Variables)
 		out[i].Runs = cloneSlice(out[i].Runs)
 		out[i].Range = cloneSourceRange(out[i].Range)
 		for j := range out[i].Runs {
+			out[i].Runs[j].Module = cloneTestModule(out[i].Runs[j].Module)
 			out[i].Runs[j].Variables = cloneAttributes(out[i].Runs[j].Variables)
+			out[i].Runs[j].PlanOptions = cloneAttributes(out[i].Runs[j].PlanOptions)
 			out[i].Runs[j].Assertions = cloneCheckRules(out[i].Runs[j].Assertions)
 			out[i].Runs[j].Range = cloneSourceRange(out[i].Runs[j].Range)
 		}
 	}
 	return out
+}
+
+func cloneTestModule(in *TestModule) *TestModule {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	out.Source = cloneValuePtr(out.Source)
+	out.Config = cloneAttributes(out.Config)
+	out.References = cloneReferences(out.References)
+	out.Range = cloneSourceRange(out.Range)
+	return &out
 }
 
 func cloneLifecycle(in *Lifecycle) *Lifecycle {

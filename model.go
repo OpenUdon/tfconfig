@@ -86,28 +86,32 @@ const (
 
 // Module represents one static module in the configuration tree.
 type Module struct {
-	Address           string                `json:"address"`
-	Source            *Value                `json:"source,omitempty"`
-	Dir               string                `json:"dir"`
-	ParentAddress     string                `json:"parent_address,omitempty"`
-	Status            ModuleStatus          `json:"status"`
-	SourceFiles       []string              `json:"source_files,omitempty"`
-	RequiredVersions  []Value               `json:"required_versions,omitempty"`
-	RequiredProviders []ProviderRequirement `json:"required_providers,omitempty"`
-	ProviderConfigs   []ProviderConfig      `json:"provider_configs,omitempty"`
-	Variables         []Variable            `json:"variables,omitempty"`
-	Locals            []Local               `json:"locals,omitempty"`
-	Outputs           []Output              `json:"outputs,omitempty"`
-	Resources         []Resource            `json:"resources,omitempty"`
-	DataSources       []DataSource          `json:"data_sources,omitempty"`
-	ModuleCalls       []ModuleCall          `json:"module_calls,omitempty"`
-	Moved             []MovedBlock          `json:"moved,omitempty"`
-	Imports           []ImportBlock         `json:"imports,omitempty"`
-	Removed           []RemovedBlock        `json:"removed,omitempty"`
-	Checks            []CheckBlock          `json:"checks,omitempty"`
-	Tests             []TestFile            `json:"tests,omitempty"`
-	Diagnostics       []Diagnostic          `json:"diagnostics,omitempty"`
-	Range             *SourceRange          `json:"range,omitempty"`
+	Address            string                `json:"address"`
+	Source             *Value                `json:"source,omitempty"`
+	Dir                string                `json:"dir"`
+	ParentAddress      string                `json:"parent_address,omitempty"`
+	Status             ModuleStatus          `json:"status"`
+	SourceFiles        []string              `json:"source_files,omitempty"`
+	RequiredVersions   []Value               `json:"required_versions,omitempty"`
+	RequiredProviders  []ProviderRequirement `json:"required_providers,omitempty"`
+	Backends           []BackendConfig       `json:"backends,omitempty"`
+	Cloud              *CloudConfig          `json:"cloud,omitempty"`
+	ProviderMetas      []ProviderMeta        `json:"provider_meta,omitempty"`
+	ProviderConfigs    []ProviderConfig      `json:"provider_configs,omitempty"`
+	Variables          []Variable            `json:"variables,omitempty"`
+	Locals             []Local               `json:"locals,omitempty"`
+	Outputs            []Output              `json:"outputs,omitempty"`
+	Resources          []Resource            `json:"resources,omitempty"`
+	DataSources        []DataSource          `json:"data_sources,omitempty"`
+	EphemeralResources []EphemeralResource   `json:"ephemeral_resources,omitempty"`
+	ModuleCalls        []ModuleCall          `json:"module_calls,omitempty"`
+	Moved              []MovedBlock          `json:"moved,omitempty"`
+	Imports            []ImportBlock         `json:"imports,omitempty"`
+	Removed            []RemovedBlock        `json:"removed,omitempty"`
+	Checks             []CheckBlock          `json:"checks,omitempty"`
+	Tests              []TestFile            `json:"tests,omitempty"`
+	Diagnostics        []Diagnostic          `json:"diagnostics,omitempty"`
+	Range              *SourceRange          `json:"range,omitempty"`
 }
 
 type Variable struct {
@@ -145,6 +149,26 @@ type ProviderRequirement struct {
 	Range              *SourceRange `json:"range,omitempty"`
 }
 
+type BackendConfig struct {
+	Type       string       `json:"type"`
+	Config     []Attribute  `json:"config,omitempty"`
+	References []Reference  `json:"references,omitempty"`
+	Range      *SourceRange `json:"range,omitempty"`
+}
+
+type CloudConfig struct {
+	Config     []Attribute  `json:"config,omitempty"`
+	References []Reference  `json:"references,omitempty"`
+	Range      *SourceRange `json:"range,omitempty"`
+}
+
+type ProviderMeta struct {
+	Provider   string       `json:"provider"`
+	Config     []Attribute  `json:"config,omitempty"`
+	References []Reference  `json:"references,omitempty"`
+	Range      *SourceRange `json:"range,omitempty"`
+}
+
 type ProviderConfig struct {
 	LocalName  string       `json:"local_name"`
 	Alias      string       `json:"alias,omitempty"`
@@ -176,6 +200,19 @@ type Resource struct {
 }
 
 type DataSource struct {
+	Address    string       `json:"address"`
+	Type       string       `json:"type"`
+	Name       string       `json:"name"`
+	Provider   *ProviderRef `json:"provider,omitempty"`
+	Config     []Attribute  `json:"config,omitempty"`
+	DependsOn  []Reference  `json:"depends_on,omitempty"`
+	Count      *Value       `json:"count,omitempty"`
+	ForEach    *Value       `json:"for_each,omitempty"`
+	References []Reference  `json:"references,omitempty"`
+	Range      *SourceRange `json:"range,omitempty"`
+}
+
+type EphemeralResource struct {
 	Address    string       `json:"address"`
 	Type       string       `json:"type"`
 	Name       string       `json:"name"`
@@ -257,16 +294,26 @@ type CheckRule struct {
 }
 
 type TestFile struct {
-	Path  string       `json:"path"`
-	Runs  []TestRun    `json:"runs,omitempty"`
-	Range *SourceRange `json:"range,omitempty"`
+	Path      string       `json:"path"`
+	Variables []Attribute  `json:"variables,omitempty"`
+	Runs      []TestRun    `json:"runs,omitempty"`
+	Range     *SourceRange `json:"range,omitempty"`
 }
 
 type TestRun struct {
-	Name       string       `json:"name"`
-	Command    string       `json:"command,omitempty"`
-	Variables  []Attribute  `json:"variables,omitempty"`
-	Assertions []CheckRule  `json:"assertions,omitempty"`
+	Name        string       `json:"name"`
+	Command     string       `json:"command,omitempty"`
+	Module      *TestModule  `json:"module,omitempty"`
+	Variables   []Attribute  `json:"variables,omitempty"`
+	PlanOptions []Attribute  `json:"plan_options,omitempty"`
+	Assertions  []CheckRule  `json:"assertions,omitempty"`
+	Range       *SourceRange `json:"range,omitempty"`
+}
+
+type TestModule struct {
+	Source     *Value       `json:"source,omitempty"`
+	Config     []Attribute  `json:"config,omitempty"`
+	References []Reference  `json:"references,omitempty"`
 	Range      *SourceRange `json:"range,omitempty"`
 }
 

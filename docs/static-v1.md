@@ -52,8 +52,12 @@ The model includes:
   markers;
 - required providers, provider configs, aliases, provider references, and
   provider mappings;
+- Terraform `backend`, `cloud`, and `provider_meta` blocks as static config
+  facts only;
 - managed resources and data sources with attributes, lifecycle,
   `depends_on`, `count`, `for_each`, references, and source ranges;
+- ephemeral resources with attributes, `depends_on`, `count`, `for_each`,
+  provider references, references, and source ranges;
 - module calls with source, inputs, provider mappings, dependencies, `count`,
   and `for_each`;
 - moved, import, removed, check, and test facts;
@@ -65,7 +69,17 @@ dotted config attribute paths rather than rejected, because `tfconfig` does not
 execute provider plugins or load provider schemas. Repeated nested blocks use
 source-order indexes, for example `first_block[0].id` and `first_block[1].id`.
 The built-in Terraform/OpenTofu meta blocks that `tfconfig` models directly,
-such as resource `lifecycle`, remain represented in their explicit model fields.
+such as resource `lifecycle`, Terraform `backend`, `cloud`, and
+`provider_meta`, remain represented in their explicit model fields.
+
+Backend and cloud blocks are parsed as source facts only. They do not initialize
+backends, read state, contact Terraform Cloud, or resolve credentials.
+Ephemeral resources are also parsed as static declarations only; `tfconfig`
+does not execute provider behavior or make runtime lifetime claims.
+
+Test files preserve top-level `variables` blocks and run-local `module`,
+`variables`, `plan_options`, and `assert` blocks. The test model is still a
+static source projection; it does not run `terraform test` or `tofu test`.
 
 ## Value Projection
 

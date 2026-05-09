@@ -2101,26 +2101,6 @@
               "byte": 414
             }
           }
-        },
-        {
-          "severity": "error",
-          "code": "unexpected_variables_block",
-          "summary": "Unexpected \"variables\" block",
-          "detail": "Blocks are not allowed here.",
-          "range": {
-            "source_id": "tests/main.tftest.hcl",
-            "path": "tests/main.tftest.hcl",
-            "start": {
-              "line": 4,
-              "column": 3,
-              "byte": 38
-            },
-            "end": {
-              "line": 4,
-              "column": 12,
-              "byte": 47
-            }
-          }
         }
       ]
     },
