@@ -43,6 +43,55 @@ file selection, block decoding, module merge, provider requirements, references,
 and diagnostics are spread across the package rather than isolated in only
 `parser.go`.
 
+## Expanded Support Mirror
+
+The second sync pass mirrors the direct support packages referenced by the
+static config source and by the optional JSON projection reference:
+
+- `internal/addrs`
+- `internal/configs/configschema`
+- `internal/configs/hcl2shim`
+- `internal/depsfile`
+- `internal/didyoumean`
+- `internal/encryption/config`
+- `internal/encryption/keyprovider`
+- `internal/encryption/method`
+- `internal/experiments`
+- `internal/getmodules`
+- `internal/getproviders`
+- `internal/instances`
+- `internal/ipaddr`
+- `internal/lang`
+- `internal/lang/blocktoattr`
+- `internal/lang/evalchecks`
+- `internal/lang/funcs`
+- `internal/lang/lint`
+- `internal/lang/marks`
+- `internal/lang/types`
+- `internal/modsdir`
+- `internal/tfdiags`
+- `version`
+
+The third sync pass mirrors support packages referenced by those direct support
+packages but still relevant only as static/reference material:
+
+- `internal/collections`
+- `internal/copy`
+- `internal/httpclient`
+- `internal/logging`
+- `internal/replacefile`
+- `internal/tracing`
+- `internal/tracing/traceattrs`
+
+After this pass, the only quoted OpenTofu internal import referenced by the
+mirrored files but not mirrored is `internal/tofu`.
+
+`internal/tofu` is intentionally excluded. It is OpenTofu's runtime/planning
+package and pulls in execution, provider, state, and planning behavior that is
+outside the `tfconfig.static.v1` boundary. The reference to it comes from
+OpenTofu's `internal/command/jsonconfig/config.go`, which remains optional JSON
+projection reference material rather than the parser implementation plan.
+
 ## Important Files
 
 Highest-value files for the first `tfconfig` port:
@@ -87,26 +136,12 @@ If the port needs equivalent string methods, regenerate them in `tfconfig` or
 copy them only after deciding how to preserve license provenance for generated
 OpenTofu-derived files.
 
-## Deferred Dependency Packages
+## Deferred Runtime Package
 
-The active sync does not yet mirror every package imported by OpenTofu
-`internal/configs`, such as:
-
-- `internal/addrs`
-- `internal/configs/configschema`
-- `internal/configs/hcl2shim`
-- `internal/tfdiags`
-- `internal/lang`
-- `internal/getmodules`
-- `internal/getproviders`
-- `internal/instances`
-- `internal/depsfile`
-- `internal/encryption/config`
-
-For `tfconfig`, these should be handled case by case. Some concepts should be
-ported into small public/static equivalents, while others should be cut because
-they belong to provider execution, backend/state behavior, or OpenTofu runtime
-semantics.
+Do not mirror `internal/tofu` for `tfconfig.static.v1`. If future work needs
+more of OpenTofu's JSON projection, prefer extracting the static JSON shapes
+needed by `tfconfig` instead of importing or mirroring OpenTofu runtime
+execution packages wholesale.
 
 ## Deferred Tests And Fixtures
 

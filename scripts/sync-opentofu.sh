@@ -65,7 +65,7 @@ while IFS=$'\t' read -r source_path dest_path notes _extra; do
   mkdir -p "$(dirname "${dest}")"
   cp "${source}" "${dest}"
 
-  if [[ "${dest_path}" == *.go ]] && ! grep -q "SPDX-License-Identifier: MPL-2.0" "${dest}"; then
+  if [[ "${dest_path}" == *.go && "${dest_path}" != _upstream/* ]] && ! grep -q "SPDX-License-Identifier: MPL-2.0" "${dest}"; then
     echo "copied Go file lacks MPL-2.0 SPDX header: ${dest_path}" >&2
     exit 1
   fi

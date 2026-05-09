@@ -17,7 +17,8 @@ This package is static analysis only. It does not run provider plugins,
 initialize backends, load state, refresh, plan, or apply.
 
 OpenTofu-derived files are MPL-2.0-covered and must preserve their upstream
-headers. See [AGENTS.md](AGENTS.md) and [UPSTREAM.md](UPSTREAM.md).
+headers. See [AGENTS.md](AGENTS.md), [UPSTREAM.md](UPSTREAM.md), and
+[THIRD_PARTY.md](THIRD_PARTY.md).
 
 ## OpenTofu Sync
 
