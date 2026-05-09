@@ -269,6 +269,14 @@ module "oci" {
 module "symbolic" {
   source = var.module_source
 }
+
+module "bare_dot" {
+  source = "."
+}
+
+module "bare_parent" {
+  source = ".."
+}
 `)
 
 	doc, err := LoadDir(dir)
@@ -281,6 +289,84 @@ module "symbolic" {
 		assertModuleDiagnostic(t, requireModule(t, doc, address), ModuleStatusRemote, "module_source_remote")
 	}
 	assertModuleDiagnostic(t, requireModule(t, doc, "module.symbolic"), ModuleStatusUnsupported, "module_source_unsupported")
+	assertModuleDiagnostic(t, requireModule(t, doc, "module.bare_dot"), ModuleStatusUnsupported, "module_source_unsupported")
+	assertModuleDiagnostic(t, requireModule(t, doc, "module.bare_parent"), ModuleStatusUnsupported, "module_source_unsupported")
+}
+
+func TestLoadDirLoadsWindowsStyleLocalModuleSource(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+module "child" {
+  source = ".\\modules\\child"
+}
+`)
+	writeTestFile(t, filepath.Join(dir, "modules", "child"), "main.tf", `
+output "ready" {
+  value = true
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	child := requireModule(t, doc, "module.child")
+	if child.Status != ModuleStatusLoaded || child.Dir != "modules/child" {
+		t.Fatalf("windows-style local module source not loaded: %#v", child)
+	}
+	if len(child.Outputs) != 1 || child.Outputs[0].Name != "ready" {
+		t.Fatalf("child output not decoded: %#v", child.Outputs)
+	}
+}
+
+func TestLoadDirDiagnosesUnreadableLocalModuleSource(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+module "locked" {
+  source = "./locked"
+}
+`)
+	lockedDir := filepath.Join(dir, "locked")
+	if err := os.MkdirAll(lockedDir, 0o755); err != nil {
+		t.Fatalf("mkdir locked: %v", err)
+	}
+	if err := os.Chmod(lockedDir, 0); err != nil {
+		t.Fatalf("chmod locked: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = os.Chmod(lockedDir, 0o755)
+	})
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	assertModuleDiagnostic(t, requireModule(t, doc, "module.locked"), ModuleStatusMissing, "module_source_missing")
+}
+
+func TestLoadDirSetsChildDiagnosticModuleAddress(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+module "child" {
+  source = "./child"
+}
+`)
+	writeTestFile(t, filepath.Join(dir, "child"), "main.tf", `
+variable "name" {}
+variable "name" {}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	child := requireModule(t, doc, "module.child")
+	if len(child.Diagnostics) != 1 || child.Diagnostics[0].Code != "duplicate_declaration" {
+		t.Fatalf("child diagnostics = %#v, want duplicate declaration", child.Diagnostics)
+	}
+	if got := child.Diagnostics[0].ModuleAddress; got != "module.child" {
+		t.Fatalf("child diagnostic module address = %q, want module.child", got)
+	}
 }
 
 func TestLoadDirModuleCycleGuard(t *testing.T) {
@@ -292,7 +378,7 @@ module "a" {
 `)
 	writeTestFile(t, filepath.Join(dir, "a"), "main.tf", `
 module "back" {
-  source = ".."
+  source = "../"
 }
 `)
 

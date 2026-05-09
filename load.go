@@ -137,11 +137,13 @@ func (l *moduleLoader) loadModule(doc *Document, moduleAbs, address, parentAddre
 		}
 		if file.Role == FileRoleTest {
 			tests, testDiags := decodeTestFile(file, body, l.sources)
+			testDiags = diagnosticsForModule(address, testDiags)
 			mod.Diagnostics = append(mod.Diagnostics, testDiags...)
 			mod.Tests = append(mod.Tests, tests...)
 			continue
 		}
 		fileDiags := decodeConfigFile(&mod, file, body, l.sources)
+		fileDiags = diagnosticsForModule(address, fileDiags)
 		mod.Diagnostics = append(mod.Diagnostics, fileDiags...)
 	}
 
@@ -306,6 +308,20 @@ func classifyModuleSource(call ModuleCall, parentAbs, rootAbs, childAddress stri
 			),
 		}
 	}
+	if isBareLocalModuleSource(source) {
+		return moduleSourceResolution{
+			status: ModuleStatusUnsupported,
+			diag: moduleSourceDiag(
+				DiagnosticError,
+				"module_source_unsupported",
+				"Module source is not statically loadable",
+				"Module source must use ./ or ../ to identify a local child module path.",
+				childAddress,
+				call.Address,
+				rng,
+			),
+		}
+	}
 	if !isDirectLocalModuleSource(source) {
 		return moduleSourceResolution{
 			status: ModuleStatusRemote,
@@ -321,9 +337,10 @@ func classifyModuleSource(call ModuleCall, parentAbs, rootAbs, childAddress stri
 		}
 	}
 
-	absDir := source
+	sourcePath := localModuleSourcePath(source)
+	absDir := sourcePath
 	if !filepath.IsAbs(absDir) {
-		absDir = filepath.Join(parentAbs, source)
+		absDir = filepath.Join(parentAbs, sourcePath)
 	}
 	absDir = filepath.Clean(absDir)
 	dir := moduleDir(rootAbs, absDir, childAddress)
@@ -360,6 +377,22 @@ func classifyModuleSource(call ModuleCall, parentAbs, rootAbs, childAddress stri
 			),
 		}
 	}
+	if _, err := os.ReadDir(absDir); err != nil {
+		return moduleSourceResolution{
+			status: ModuleStatusMissing,
+			absDir: absDir,
+			dir:    dir,
+			diag: moduleSourceDiag(
+				DiagnosticError,
+				"module_source_missing",
+				"Local module source is not readable",
+				fmt.Sprintf("Module source %q resolved to %s, which cannot be read: %v.", source, dir, err),
+				childAddress,
+				call.Address,
+				rng,
+			),
+		}
+	}
 	return moduleSourceResolution{status: ModuleStatusLoaded, absDir: absDir, dir: dir}
 }
 
@@ -390,12 +423,32 @@ func sourceRangeForModuleSource(call ModuleCall) *SourceRange {
 	return cloneSourceRange(call.Range)
 }
 
+func diagnosticsForModule(address string, diags []Diagnostic) []Diagnostic {
+	if address == "" {
+		return diags
+	}
+	for i := range diags {
+		if diags[i].ModuleAddress == "" {
+			diags[i].ModuleAddress = address
+		}
+	}
+	return diags
+}
+
+func isBareLocalModuleSource(source string) bool {
+	return source == "." || source == ".."
+}
+
 func isDirectLocalModuleSource(source string) bool {
-	return source == "." ||
-		source == ".." ||
-		strings.HasPrefix(source, "./") ||
+	return strings.HasPrefix(source, "./") ||
 		strings.HasPrefix(source, "../") ||
+		strings.HasPrefix(source, `.\`) ||
+		strings.HasPrefix(source, `..\`) ||
 		filepath.IsAbs(source)
+}
+
+func localModuleSourcePath(source string) string {
+	return filepath.FromSlash(strings.ReplaceAll(source, `\`, "/"))
 }
 
 func moduleDir(rootAbs, moduleAbs, address string) string {
