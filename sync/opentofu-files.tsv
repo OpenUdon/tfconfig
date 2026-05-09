@@ -16,3 +16,59 @@
 #
 # Example:
 # internal/configs/parser.go	_upstream/opentofu/internal/configs/parser.go	raw upstream snapshot
+#
+# Core static config parser/model source. This is the main reference set for
+# tfconfig.static.v1.
+internal/configs/backend.go	_upstream/opentofu/internal/configs/backend.go	raw upstream snapshot; backend facts only, no backend execution
+internal/configs/checks.go	_upstream/opentofu/internal/configs/checks.go	raw upstream snapshot; check/pre/postcondition decoding
+internal/configs/cloud.go	_upstream/opentofu/internal/configs/cloud.go	raw upstream snapshot; cloud block diagnostics/reference only
+internal/configs/compat_shim.go	_upstream/opentofu/internal/configs/compat_shim.go	raw upstream snapshot; compatibility helpers
+internal/configs/config.go	_upstream/opentofu/internal/configs/config.go	raw upstream snapshot; static Config tree
+internal/configs/config_build.go	_upstream/opentofu/internal/configs/config_build.go	raw upstream snapshot; static module tree builder
+internal/configs/container.go	_upstream/opentofu/internal/configs/container.go	raw upstream snapshot; scoped config containers
+internal/configs/depends_on.go	_upstream/opentofu/internal/configs/depends_on.go	raw upstream snapshot; dependency decoding
+internal/configs/diagnostics.go	_upstream/opentofu/internal/configs/diagnostics.go	raw upstream snapshot; load diagnostic handling
+internal/configs/doc.go	_upstream/opentofu/internal/configs/doc.go	raw upstream snapshot; package docs
+internal/configs/import.go	_upstream/opentofu/internal/configs/import.go	raw upstream snapshot; import block facts
+internal/configs/language.go	_upstream/opentofu/internal/configs/language.go	raw upstream snapshot; language block/version behavior
+internal/configs/module.go	_upstream/opentofu/internal/configs/module.go	raw upstream snapshot; module merge container
+internal/configs/module_call.go	_upstream/opentofu/internal/configs/module_call.go	raw upstream snapshot; module call decoding
+internal/configs/module_merge.go	_upstream/opentofu/internal/configs/module_merge.go	raw upstream snapshot; override merge behavior
+internal/configs/moved.go	_upstream/opentofu/internal/configs/moved.go	raw upstream snapshot; moved block facts
+internal/configs/named_values.go	_upstream/opentofu/internal/configs/named_values.go	raw upstream snapshot; variables/locals/outputs
+internal/configs/parser.go	_upstream/opentofu/internal/configs/parser.go	raw upstream snapshot; HCL/JSON parser cache
+internal/configs/parser_config.go	_upstream/opentofu/internal/configs/parser_config.go	raw upstream snapshot; config/test file decoding entrypoints
+internal/configs/parser_config_dir.go	_upstream/opentofu/internal/configs/parser_config_dir.go	raw upstream snapshot; .tf/.tofu/JSON/override/test file selection
+internal/configs/provider.go	_upstream/opentofu/internal/configs/provider.go	raw upstream snapshot; provider config decoding
+internal/configs/provider_meta.go	_upstream/opentofu/internal/configs/provider_meta.go	raw upstream snapshot; provider_meta block facts
+internal/configs/provider_requirements.go	_upstream/opentofu/internal/configs/provider_requirements.go	raw upstream snapshot; required_providers decoding
+internal/configs/provider_validation.go	_upstream/opentofu/internal/configs/provider_validation.go	raw upstream snapshot; provider validation/reference behavior
+internal/configs/provisioner.go	_upstream/opentofu/internal/configs/provisioner.go	raw upstream snapshot; provisioner facts/diagnostics only
+internal/configs/removed.go	_upstream/opentofu/internal/configs/removed.go	raw upstream snapshot; removed block facts
+internal/configs/resource.go	_upstream/opentofu/internal/configs/resource.go	raw upstream snapshot; resource/data/lifecycle/count/for_each decoding
+internal/configs/shim.go	_upstream/opentofu/internal/configs/shim.go	raw upstream snapshot; shim helpers
+internal/configs/static_evaluator.go	_upstream/opentofu/internal/configs/static_evaluator.go	raw upstream snapshot; static expression evaluation references
+internal/configs/static_scope.go	_upstream/opentofu/internal/configs/static_scope.go	raw upstream snapshot; static scope/reference behavior
+internal/configs/test_file.go	_upstream/opentofu/internal/configs/test_file.go	raw upstream snapshot; test file decoding
+internal/configs/test_provider_body.go	_upstream/opentofu/internal/configs/test_provider_body.go	raw upstream snapshot; test provider body support
+internal/configs/testing_helpers.go	_upstream/opentofu/internal/configs/testing_helpers.go	raw upstream snapshot; upstream tests/reference helpers
+internal/configs/validation.go	_upstream/opentofu/internal/configs/validation.go	raw upstream snapshot; config validation rules
+internal/configs/variable_type_hint.go	_upstream/opentofu/internal/configs/variable_type_hint.go	raw upstream snapshot; variable type hint source
+internal/configs/version_constraint.go	_upstream/opentofu/internal/configs/version_constraint.go	raw upstream snapshot; version constraint parsing
+
+# Static config loader source. Important for module-tree behavior and the
+# distinction between available local modules and OpenTofu's installed-module
+# manifest expectations.
+internal/configs/configload/doc.go	_upstream/opentofu/internal/configs/configload/doc.go	raw upstream snapshot; loader package docs
+internal/configs/configload/loader.go	_upstream/opentofu/internal/configs/configload/loader.go	raw upstream snapshot; loader construction
+internal/configs/configload/loader_load.go	_upstream/opentofu/internal/configs/configload/loader_load.go	raw upstream snapshot; static config load/module walk
+internal/configs/configload/loader_snapshot.go	_upstream/opentofu/internal/configs/configload/loader_snapshot.go	raw upstream snapshot; snapshot loading reference
+internal/configs/configload/module_mgr.go	_upstream/opentofu/internal/configs/configload/module_mgr.go	raw upstream snapshot; installed module manifest reference
+internal/configs/configload/testing.go	_upstream/opentofu/internal/configs/configload/testing.go	raw upstream snapshot; upstream loader test helpers
+
+# JSON configuration output source. This is reference material for optional
+# tfconfig JSON projection, not the primary parser boundary.
+internal/command/jsonconfig/config.go	_upstream/opentofu/internal/command/jsonconfig/config.go	raw upstream snapshot; config JSON projection reference
+internal/command/jsonconfig/doc.go	_upstream/opentofu/internal/command/jsonconfig/doc.go	raw upstream snapshot; jsonconfig docs
+internal/command/jsonconfig/expression.go	_upstream/opentofu/internal/command/jsonconfig/expression.go	raw upstream snapshot; expression/reference JSON projection
+internal/command/jsonconfig/single_module.go	_upstream/opentofu/internal/command/jsonconfig/single_module.go	raw upstream snapshot; dependency-light single-module JSON reference
