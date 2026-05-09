@@ -34,6 +34,9 @@ Likely source areas for future static config loading work:
 - `internal/configs/configload/`
 - `internal/command/jsonconfig/`
 
+Raw upstream snapshots should normally be copied under `_upstream/opentofu/...`
+first, then adapted into compile-ready `tfconfig` packages after review.
+
 ## Skipped Behavior
 
 The initial `tfconfig` boundary intentionally excludes:

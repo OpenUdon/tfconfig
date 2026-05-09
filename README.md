@@ -22,6 +22,10 @@ headers. See [AGENTS.md](AGENTS.md) and [UPSTREAM.md](UPSTREAM.md).
 ## OpenTofu Sync
 
 Allowlisted upstream files are listed in [sync/opentofu-files.tsv](sync/opentofu-files.tsv).
+Raw upstream snapshots should normally land under `_upstream/opentofu/...`, which
+the Go tool ignores. Compile-ready parser code should then be adapted into
+normal `tfconfig` packages after review.
+
 To sync from a local OpenTofu checkout:
 
 ```bash

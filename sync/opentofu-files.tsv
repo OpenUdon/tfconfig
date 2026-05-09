@@ -9,5 +9,10 @@
 # Keep this list narrow. Add only files intentionally copied or adapted into
 # tfconfig, and preserve MPL-2.0 headers on OpenTofu-derived Go files.
 #
+# Raw upstream snapshots should normally sync under _upstream/, which the Go
+# tool ignores. Adapted compile-ready code belongs in normal packages after
+# review. This avoids breaking `go test ./...` when OpenTofu internals import
+# other OpenTofu internals we have not ported.
+#
 # Example:
-# internal/configs/parser.go	internal/upstream/opentofu/configs/parser.go	copied, static parser cache
+# internal/configs/parser.go	_upstream/opentofu/internal/configs/parser.go	raw upstream snapshot

@@ -119,19 +119,24 @@ Use this workflow when updating code copied or adapted from `../opentofu`:
    ```
 
 3. Add or update explicit mappings in [sync/opentofu-files.tsv](sync/opentofu-files.tsv).
-   Do not sync broad directories by default.
+   Do not sync broad directories by default. Prefer syncing raw upstream
+   snapshots under `_upstream/opentofu/...`, which the Go tool ignores, and
+   then adapt the needed code into normal compile-ready `tfconfig` packages.
 
 4. Compare the current `tfconfig` copy against those source files. Prefer
    deterministic commands such as `diff -u`, `git diff --no-index`, and `rg`.
 
-5. Copy or adapt only the files needed for static parsing. For pure upstream
-   file copies, prefer:
+5. Copy or adapt only the files needed for static parsing. For raw upstream
+   snapshots, prefer:
 
    ```bash
    ./scripts/sync-opentofu.sh
    ```
 
-   Do not import `../opentofu/internal/...` from this repo.
+   Do not import `../opentofu/internal/...` from this repo. Do not place raw,
+   unadapted OpenTofu Go files in normal package directories if they import
+   OpenTofu internals that have not been ported; use `_upstream/` for those
+   snapshots.
 
 6. Preserve MPL headers on copied/adapted files.
 
