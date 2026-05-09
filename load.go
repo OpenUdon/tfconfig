@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -65,69 +66,134 @@ func LoadDirWithOptions(dir string, opts LoadOptions) (Document, error) {
 	if opts.Producer != "" {
 		doc.Producer = opts.Producer
 	}
-	doc.SourceRoots = append(doc.SourceRoots, SourceRoot{
-		ID:            "root",
-		ModuleAddress: "",
-		Dir:           normalizePath(dir),
-	})
 
-	files, diags := discoverRootFiles(absDir, opts)
-	doc.Diagnostics = append(doc.Diagnostics, diags...)
+	loader := moduleLoader{
+		rootAbs: absDir,
+		opts:    opts,
+		parser:  hclparse.NewParser(),
+		sources: make(map[string]sourceInfo),
+	}
+	stack := map[string]bool{}
+	loader.loadModule(&doc, absDir, "", "", nil, ModuleStatusRoot, stack)
+	return doc.Canonical(), nil
+}
+
+type moduleLoader struct {
+	rootAbs string
+	opts    LoadOptions
+	parser  *hclparse.Parser
+	sources map[string]sourceInfo
+}
+
+func (l *moduleLoader) loadModule(doc *Document, moduleAbs, address, parentAddress string, source *Value, status ModuleStatus, stack map[string]bool) {
+	moduleAbs = filepath.Clean(moduleAbs)
+	canonical := canonicalModuleDir(moduleAbs)
+	stack[canonical] = true
+	defer delete(stack, canonical)
+
+	files, diags := discoverModuleFiles(l.rootAbs, moduleAbs, l.opts)
+	moduleDiags := diags
+	if address == "" {
+		doc.Diagnostics = append(doc.Diagnostics, diags...)
+		moduleDiags = nil
+	} else {
+		for i := range moduleDiags {
+			moduleDiags[i].ModuleAddress = address
+		}
+	}
+
+	mod := Module{
+		Address:       address,
+		Source:        cloneValuePtr(source),
+		Dir:           moduleDir(l.rootAbs, moduleAbs, address),
+		ParentAddress: parentAddress,
+		Status:        status,
+		SourceFiles:   sourceFilePaths(files, FileRolePrimary, FileRoleOverride),
+		Diagnostics:   moduleDiags,
+	}
+
+	doc.SourceRoots = append(doc.SourceRoots, SourceRoot{
+		ID:            sourceRootID(address),
+		ModuleAddress: address,
+		Dir:           sourceRootDir(doc.RootDir, mod.Dir, address),
+	})
 	for _, file := range files {
 		doc.SourceFiles = append(doc.SourceFiles, SourceFile{
 			ID:            file.RelPath,
-			ModuleAddress: "",
+			ModuleAddress: address,
 			Path:          file.RelPath,
 			Format:        file.Format,
 			Role:          file.Role,
 		})
-	}
-
-	mod := Module{
-		Address:     "",
-		Dir:         ".",
-		Status:      ModuleStatusRoot,
-		SourceFiles: sourceFilePaths(files, FileRolePrimary, FileRoleOverride),
-	}
-
-	parser := hclparse.NewParser()
-	sources := make(map[string]sourceInfo)
-	for _, file := range files {
 		data, _ := os.ReadFile(file.AbsPath)
-		sources[file.AbsPath] = sourceInfo{id: file.RelPath, path: file.RelPath, data: data}
+		l.sources[file.AbsPath] = sourceInfo{id: file.RelPath, path: file.RelPath, data: data}
 	}
 
 	for _, file := range files {
-		body, parseDiags := parseFile(parser, file)
-		doc.Diagnostics = append(doc.Diagnostics, convertDiagnostics(parseDiags, "", "", sources)...)
+		body, parseDiags := parseFile(l.parser, file)
+		doc.Diagnostics = append(doc.Diagnostics, convertDiagnostics(parseDiags, address, "", l.sources)...)
 		if body == nil {
 			continue
 		}
 		if file.Role == FileRoleTest {
-			tests, testDiags := decodeTestFile(file, body, sources)
+			tests, testDiags := decodeTestFile(file, body, l.sources)
 			mod.Diagnostics = append(mod.Diagnostics, testDiags...)
 			mod.Tests = append(mod.Tests, tests...)
 			continue
 		}
-		fileDiags := decodeConfigFile(&mod, file, body, sources)
+		fileDiags := decodeConfigFile(&mod, file, body, l.sources)
 		mod.Diagnostics = append(mod.Diagnostics, fileDiags...)
 	}
 
+	for i := range mod.ModuleCalls {
+		mod.ModuleCalls[i].Address = childModuleAddress(address, mod.ModuleCalls[i].Name)
+	}
+
 	doc.Modules = append(doc.Modules, mod)
-	return doc.Canonical(), nil
+	for _, call := range sortedModuleCalls(mod.ModuleCalls) {
+		childAddress := childModuleAddress(address, call.Name)
+		resolution := classifyModuleSource(call, moduleAbs, l.rootAbs, childAddress)
+		if resolution.status != ModuleStatusLoaded {
+			doc.Modules = append(doc.Modules, placeholderModule(call, resolution, address, childAddress))
+			continue
+		}
+		childCanonical := canonicalModuleDir(resolution.absDir)
+		if stack[childCanonical] {
+			cycleResolution := resolution
+			cycleResolution.status = ModuleStatusUnsupported
+			cycleResolution.diag = moduleSourceDiag(
+				DiagnosticError,
+				"module_source_cycle",
+				"Local module source creates a cycle",
+				fmt.Sprintf("Module %s resolves to %s, which is already on the active module loading stack.", childAddress, resolution.dir),
+				childAddress,
+				call.Address,
+				sourceRangeForModuleSource(call),
+			)
+			doc.Modules = append(doc.Modules, placeholderModule(call, cycleResolution, address, childAddress))
+			continue
+		}
+		l.loadModule(doc, resolution.absDir, childAddress, address, call.Source, ModuleStatusLoaded, stack)
+	}
 }
 
-func discoverRootFiles(absDir string, opts LoadOptions) ([]discoveredFile, []Diagnostic) {
+func sortedModuleCalls(calls []ModuleCall) []ModuleCall {
+	out := cloneModuleCalls(calls)
+	sort.Slice(out, func(i, j int) bool { return out[i].Address < out[j].Address })
+	return out
+}
+
+func discoverModuleFiles(rootAbs, moduleAbs string, opts LoadOptions) ([]discoveredFile, []Diagnostic) {
 	var diags []Diagnostic
 	var primary, override, tests []discoveredFile
 
-	entries, err := os.ReadDir(absDir)
+	entries, err := os.ReadDir(moduleAbs)
 	if err != nil {
 		return nil, []Diagnostic{{
 			Severity: DiagnosticError,
 			Code:     "read_module_directory",
 			Summary:  "Failed to read module directory",
-			Detail:   fmt.Sprintf("Module directory %s does not exist or cannot be read.", absDir),
+			Detail:   fmt.Sprintf("Module directory %s does not exist or cannot be read.", moduleAbs),
 		}}
 	}
 
@@ -135,7 +201,7 @@ func discoverRootFiles(absDir string, opts LoadOptions) ([]discoveredFile, []Dia
 		if entry.IsDir() || isIgnoredFile(entry.Name()) {
 			continue
 		}
-		file, ok := classifyFile(absDir, absDir, entry.Name(), FileRolePrimary)
+		file, ok := classifyFile(rootAbs, moduleAbs, entry.Name(), FileRolePrimary)
 		if !ok {
 			continue
 		}
@@ -155,14 +221,14 @@ func discoverRootFiles(absDir string, opts LoadOptions) ([]discoveredFile, []Dia
 	if testDir == "" {
 		testDir = defaultTestDirectory
 	}
-	testPath := filepath.Join(absDir, testDir)
+	testPath := filepath.Join(moduleAbs, testDir)
 	testEntries, err := os.ReadDir(testPath)
 	if err == nil {
 		for _, entry := range testEntries {
 			if entry.IsDir() || isIgnoredFile(entry.Name()) {
 				continue
 			}
-			file, ok := classifyFile(absDir, testPath, entry.Name(), FileRoleTest)
+			file, ok := classifyFile(rootAbs, testPath, entry.Name(), FileRoleTest)
 			if ok && file.Role == FileRoleTest {
 				tests = append(tests, file)
 			}
@@ -185,6 +251,194 @@ func discoverRootFiles(absDir string, opts LoadOptions) ([]discoveredFile, []Dia
 	files = append(files, override...)
 	files = append(files, tests...)
 	return files, diags
+}
+
+type moduleSourceResolution struct {
+	status ModuleStatus
+	absDir string
+	dir    string
+	diag   *Diagnostic
+}
+
+func classifyModuleSource(call ModuleCall, parentAbs, rootAbs, childAddress string) moduleSourceResolution {
+	rng := sourceRangeForModuleSource(call)
+	if call.Source == nil {
+		return moduleSourceResolution{
+			status: ModuleStatusUnsupported,
+			diag: moduleSourceDiag(
+				DiagnosticError,
+				"module_source_unsupported",
+				"Module source is not statically loadable",
+				"Module source is missing, so no child module directory can be loaded statically.",
+				childAddress,
+				call.Address,
+				rng,
+			),
+		}
+	}
+	source, ok := call.Source.Literal.(string)
+	if !ok || call.Source.Kind != ValueKindString {
+		return moduleSourceResolution{
+			status: ModuleStatusUnsupported,
+			diag: moduleSourceDiag(
+				DiagnosticError,
+				"module_source_unsupported",
+				"Module source is not statically loadable",
+				"Module source is an expression rather than a direct local filesystem path.",
+				childAddress,
+				call.Address,
+				rng,
+			),
+		}
+	}
+	source = strings.TrimSpace(source)
+	if source == "" {
+		return moduleSourceResolution{
+			status: ModuleStatusUnsupported,
+			diag: moduleSourceDiag(
+				DiagnosticError,
+				"module_source_unsupported",
+				"Module source is not statically loadable",
+				"Module source is empty, so no child module directory can be loaded statically.",
+				childAddress,
+				call.Address,
+				rng,
+			),
+		}
+	}
+	if !isDirectLocalModuleSource(source) {
+		return moduleSourceResolution{
+			status: ModuleStatusRemote,
+			diag: moduleSourceDiag(
+				DiagnosticError,
+				"module_source_remote",
+				"Module source requires external retrieval",
+				fmt.Sprintf("Module source %q is registry, remote, or downloader-backed and was not loaded. The static loader does not run init or downloader steps.", source),
+				childAddress,
+				call.Address,
+				rng,
+			),
+		}
+	}
+
+	absDir := source
+	if !filepath.IsAbs(absDir) {
+		absDir = filepath.Join(parentAbs, source)
+	}
+	absDir = filepath.Clean(absDir)
+	dir := moduleDir(rootAbs, absDir, childAddress)
+	info, err := os.Stat(absDir)
+	if err != nil {
+		return moduleSourceResolution{
+			status: ModuleStatusMissing,
+			absDir: absDir,
+			dir:    dir,
+			diag: moduleSourceDiag(
+				DiagnosticError,
+				"module_source_missing",
+				"Local module source is not readable",
+				fmt.Sprintf("Module source %q resolved to %s, which does not exist or cannot be read.", source, dir),
+				childAddress,
+				call.Address,
+				rng,
+			),
+		}
+	}
+	if !info.IsDir() {
+		return moduleSourceResolution{
+			status: ModuleStatusMissing,
+			absDir: absDir,
+			dir:    dir,
+			diag: moduleSourceDiag(
+				DiagnosticError,
+				"module_source_missing",
+				"Local module source is not a directory",
+				fmt.Sprintf("Module source %q resolved to %s, which is not a directory.", source, dir),
+				childAddress,
+				call.Address,
+				rng,
+			),
+		}
+	}
+	return moduleSourceResolution{status: ModuleStatusLoaded, absDir: absDir, dir: dir}
+}
+
+func placeholderModule(call ModuleCall, resolution moduleSourceResolution, parentAddress, childAddress string) Module {
+	mod := Module{
+		Address:       childAddress,
+		Source:        cloneValuePtr(call.Source),
+		Dir:           resolution.dir,
+		ParentAddress: parentAddress,
+		Status:        resolution.status,
+		Range:         cloneSourceRange(call.Range),
+	}
+	if resolution.diag != nil {
+		mod.Diagnostics = append(mod.Diagnostics, *resolution.diag)
+	}
+	return mod
+}
+
+func moduleSourceDiag(severity DiagnosticSeverity, code, summary, detail, moduleAddress, address string, rng *SourceRange) *Diagnostic {
+	diag := modelDiagnostic(severity, code, summary, detail, moduleAddress, address, rng)
+	return &diag
+}
+
+func sourceRangeForModuleSource(call ModuleCall) *SourceRange {
+	if call.Source != nil && call.Source.Range != nil {
+		return cloneSourceRange(call.Source.Range)
+	}
+	return cloneSourceRange(call.Range)
+}
+
+func isDirectLocalModuleSource(source string) bool {
+	return source == "." ||
+		source == ".." ||
+		strings.HasPrefix(source, "./") ||
+		strings.HasPrefix(source, "../") ||
+		filepath.IsAbs(source)
+}
+
+func moduleDir(rootAbs, moduleAbs, address string) string {
+	if address == "" {
+		return "."
+	}
+	if rel, err := filepath.Rel(rootAbs, moduleAbs); err == nil && !strings.HasPrefix(rel, ".."+string(filepath.Separator)) && rel != ".." {
+		return normalizePath(rel)
+	}
+	return normalizePath(moduleAbs)
+}
+
+func sourceRootDir(rootDir, moduleDir, address string) string {
+	if address == "" {
+		return normalizePath(rootDir)
+	}
+	return moduleDir
+}
+
+func sourceRootID(address string) string {
+	if address == "" {
+		return "root"
+	}
+	return address
+}
+
+func childModuleAddress(parentAddress, name string) string {
+	if parentAddress == "" {
+		return "module." + name
+	}
+	return parentAddress + ".module." + name
+}
+
+func canonicalModuleDir(absDir string) string {
+	resolved, err := filepath.EvalSymlinks(absDir)
+	if err == nil {
+		return filepath.Clean(resolved)
+	}
+	abs, err := filepath.Abs(absDir)
+	if err == nil {
+		return filepath.Clean(abs)
+	}
+	return filepath.Clean(absDir)
 }
 
 func classifyFile(rootDir, dir, name string, defaultRole FileRole) (discoveredFile, bool) {

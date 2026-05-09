@@ -21,9 +21,13 @@ doc, err := tfconfig.LoadDir("./tf")
 ```
 
 It discovers `.tf`, `.tofu`, `.tf.json`, `.tofu.json`, override files, and
-module test files in the root module directory. Module call facts are decoded,
-but child module directories are not loaded until the local module tree
-milestone.
+module test files in the root module directory. Direct local child module
+sources such as `./modules/app`, `../shared`, and absolute filesystem paths are
+loaded recursively when the directories are readable. Registry, Git, HTTP, S3,
+OCI, symbolic, missing, and other downloader-backed module sources are not
+fetched; they are represented as child modules with load status and
+diagnostics. `.terraform/modules/modules.json` is not read by the static
+loader.
 
 The top-level document uses:
 

@@ -111,6 +111,9 @@ run "basic" {
   }
 }
 `)
+	writeTestFile(t, filepath.Join(dir, "modules", "child"), "main.tf", `
+variable "name" {}
+`)
 
 	doc, err := LoadDir(dir)
 	if err != nil {
@@ -119,10 +122,7 @@ run "basic" {
 	if len(doc.Diagnostics) != 0 {
 		t.Fatalf("document diagnostics = %#v, want none", doc.Diagnostics)
 	}
-	if len(doc.Modules) != 1 {
-		t.Fatalf("modules = %d, want 1", len(doc.Modules))
-	}
-	mod := doc.Modules[0]
+	mod := requireModule(t, doc, "")
 	if len(mod.RequiredVersions) != 1 {
 		t.Fatalf("required versions = %d, want 1", len(mod.RequiredVersions))
 	}
@@ -160,6 +160,173 @@ run "basic" {
 	}
 	if !strings.Contains(string(out), `"kind": "redacted"`) {
 		t.Fatalf("public JSON did not include redacted sensitive candidate:\n%s", out)
+	}
+}
+
+func TestLoadDirLoadsLocalModuleTree(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+provider "aws" {
+  alias = "west"
+  region = "us-west-2"
+}
+
+module "child" {
+  source = "./modules/child"
+  providers = {
+    aws = aws.west
+  }
+  name = var.name
+  count = 1
+  depends_on = [aws_instance.root]
+}
+`)
+	writeTestFile(t, filepath.Join(dir, "modules", "child"), "main.tf", `
+variable "name" {}
+
+resource "example_child" "main" {
+  name = var.name
+}
+
+module "grandchild" {
+  source = "./grandchild"
+  for_each = toset(["one"])
+}
+`)
+	writeTestFile(t, filepath.Join(dir, "modules", "child", "grandchild"), "main.tf", `
+output "ready" {
+  value = true
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	if len(doc.Diagnostics) != 0 {
+		t.Fatalf("document diagnostics = %#v, want none", doc.Diagnostics)
+	}
+
+	root := requireModule(t, doc, "")
+	child := requireModule(t, doc, "module.child")
+	grandchild := requireModule(t, doc, "module.child.module.grandchild")
+
+	if child.Status != ModuleStatusLoaded || child.ParentAddress != "" || child.Dir != "modules/child" {
+		t.Fatalf("child module metadata = %#v, want loaded root child in modules/child", child)
+	}
+	if grandchild.Status != ModuleStatusLoaded || grandchild.ParentAddress != "module.child" || grandchild.Dir != "modules/child/grandchild" {
+		t.Fatalf("grandchild module metadata = %#v, want loaded nested child", grandchild)
+	}
+	if len(child.Resources) != 1 || child.Resources[0].Address != "example_child.main" {
+		t.Fatalf("child resources not decoded: %#v", child.Resources)
+	}
+	if len(grandchild.Outputs) != 1 || grandchild.Outputs[0].Name != "ready" {
+		t.Fatalf("grandchild outputs not decoded: %#v", grandchild.Outputs)
+	}
+	if len(root.ModuleCalls) != 1 {
+		t.Fatalf("root module calls = %#v, want one", root.ModuleCalls)
+	}
+	call := root.ModuleCalls[0]
+	if call.Address != "module.child" ||
+		len(call.Inputs) != 1 ||
+		len(call.ProviderMappings) != 1 ||
+		call.Count == nil ||
+		len(call.DependsOn) != 1 {
+		t.Fatalf("module call facts not preserved: %#v", call)
+	}
+	if len(child.ModuleCalls) != 1 || child.ModuleCalls[0].Address != "module.child.module.grandchild" || child.ModuleCalls[0].ForEach == nil {
+		t.Fatalf("nested module call facts not preserved with full address: %#v", child.ModuleCalls)
+	}
+}
+
+func TestLoadDirDiagnosesUnavailableModuleSources(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+module "missing" {
+  source = "./missing"
+}
+
+module "registry" {
+  source = "hashicorp/consul/aws"
+}
+
+module "git" {
+  source = "git::https://example.com/mod.git"
+}
+
+module "http" {
+  source = "https://example.com/mod.zip"
+}
+
+module "s3" {
+  source = "s3://bucket/key"
+}
+
+module "oci" {
+  source = "oci://registry.example.com/mod"
+}
+
+module "symbolic" {
+  source = var.module_source
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+
+	assertModuleDiagnostic(t, requireModule(t, doc, "module.missing"), ModuleStatusMissing, "module_source_missing")
+	for _, address := range []string{"module.registry", "module.git", "module.http", "module.s3", "module.oci"} {
+		assertModuleDiagnostic(t, requireModule(t, doc, address), ModuleStatusRemote, "module_source_remote")
+	}
+	assertModuleDiagnostic(t, requireModule(t, doc, "module.symbolic"), ModuleStatusUnsupported, "module_source_unsupported")
+}
+
+func TestLoadDirModuleCycleGuard(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+module "a" {
+  source = "./a"
+}
+`)
+	writeTestFile(t, filepath.Join(dir, "a"), "main.tf", `
+module "back" {
+  source = ".."
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	assertModuleDiagnostic(t, requireModule(t, doc, "module.a.module.back"), ModuleStatusUnsupported, "module_source_cycle")
+}
+
+func TestLoadDirDoesNotReadModuleManifest(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+module "remote" {
+  source = "hashicorp/consul/aws"
+}
+`)
+	writeTestFile(t, filepath.Join(dir, ".terraform", "modules"), "modules.json", `{
+  "Modules": [
+    {"Key": "remote", "Source": "hashicorp/consul/aws", "Dir": "../../cached"}
+  ]
+}`)
+	writeTestFile(t, filepath.Join(dir, "cached"), "main.tf", `
+resource "should_not" "load" {}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	remote := requireModule(t, doc, "module.remote")
+	assertModuleDiagnostic(t, remote, ModuleStatusRemote, "module_source_remote")
+	if len(remote.Resources) != 0 {
+		t.Fatalf("manifest-backed remote module was loaded: %#v", remote.Resources)
 	}
 }
 
@@ -418,5 +585,26 @@ func writeTestFile(t *testing.T, dir, name, body string) {
 	path := filepath.Join(dir, name)
 	if err := os.WriteFile(path, []byte(strings.TrimSpace(body)+"\n"), 0o644); err != nil {
 		t.Fatalf("write %s: %v", path, err)
+	}
+}
+
+func requireModule(t *testing.T, doc Document, address string) Module {
+	t.Helper()
+	for _, mod := range doc.Modules {
+		if mod.Address == address {
+			return mod
+		}
+	}
+	t.Fatalf("module %q not found in %#v", address, doc.Modules)
+	return Module{}
+}
+
+func assertModuleDiagnostic(t *testing.T, mod Module, status ModuleStatus, code string) {
+	t.Helper()
+	if mod.Status != status {
+		t.Fatalf("module %s status = %s, want %s", mod.Address, mod.Status, status)
+	}
+	if len(mod.Diagnostics) != 1 || mod.Diagnostics[0].Code != code {
+		t.Fatalf("module %s diagnostics = %#v, want one %s", mod.Address, mod.Diagnostics, code)
 	}
 }
