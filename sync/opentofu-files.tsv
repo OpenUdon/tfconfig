@@ -1,0 +1,13 @@
+# OpenTofu-to-tfconfig sync allowlist.
+#
+# Format:
+#   opentofu_source_path<TAB>tfconfig_destination_path<TAB>notes
+#
+# Paths are repository-relative. Source paths are relative to the OpenTofu
+# checkout. Destination paths are relative to this tfconfig checkout.
+#
+# Keep this list narrow. Add only files intentionally copied or adapted into
+# tfconfig, and preserve MPL-2.0 headers on OpenTofu-derived Go files.
+#
+# Example:
+# internal/configs/parser.go	internal/upstream/opentofu/configs/parser.go	copied, static parser cache

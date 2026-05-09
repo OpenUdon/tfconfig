@@ -1,0 +1,68 @@
+name: Sync OpenTofu Static Config Sources
+
+on:
+  workflow_dispatch:
+    inputs:
+      opentofu_ref:
+        description: OpenTofu ref to sync from
+        required: false
+        default: main
+  schedule:
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tfconfig
+        uses: actions/checkout@v4
+        with:
+          path: tfconfig
+
+      - name: Checkout OpenTofu
+        uses: actions/checkout@v4
+        with:
+          repository: opentofu/opentofu
+          ref: ${{ inputs.opentofu_ref || 'main' }}
+          path: opentofu
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tfconfig/go.mod
+
+      - name: Sync allowlisted OpenTofu files
+        working-directory: tfconfig
+        env:
+          OPENTOFU_DIR: ../opentofu
+        run: ./scripts/sync-opentofu.sh
+
+      - name: Test
+        working-directory: tfconfig
+        run: go test ./...
+
+      - name: Vet
+        working-directory: tfconfig
+        run: go vet ./...
+
+      - name: Diff check
+        working-directory: tfconfig
+        run: git diff --check
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          path: tfconfig
+          branch: automation/sync-opentofu
+          delete-branch: true
+          commit-message: "sync OpenTofu static config sources"
+          title: "Sync OpenTofu static config sources"
+          body: |
+            Automated sync from `opentofu/opentofu`.
+
+            This PR is intentionally review-required. OpenTofu internals are not
+            a stable API, and copied/adapted files remain MPL-2.0-covered.
