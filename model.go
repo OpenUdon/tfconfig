@@ -143,10 +143,11 @@ type Output struct {
 }
 
 type ProviderRequirement struct {
-	LocalName          string       `json:"local_name"`
-	Source             string       `json:"source,omitempty"`
-	VersionConstraints []string     `json:"version_constraints,omitempty"`
-	Range              *SourceRange `json:"range,omitempty"`
+	LocalName            string       `json:"local_name"`
+	Source               string       `json:"source,omitempty"`
+	VersionConstraints   []string     `json:"version_constraints,omitempty"`
+	ConfigurationAliases []string     `json:"configuration_aliases,omitempty"`
+	Range                *SourceRange `json:"range,omitempty"`
 }
 
 type BackendConfig struct {

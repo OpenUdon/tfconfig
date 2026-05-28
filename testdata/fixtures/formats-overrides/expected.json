@@ -256,5 +256,13 @@
         }
       ]
     }
+  ],
+  "diagnostics": [
+    {
+      "severity": "info",
+      "code": "tofu_alternative_ignored",
+      "summary": "Ignored .tf files with .tofu alternatives",
+      "detail": "The following .tf files were ignored because matching .tofu alternatives exist: choice.tf."
+    }
   ]
 }

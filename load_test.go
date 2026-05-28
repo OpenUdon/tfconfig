@@ -410,6 +410,33 @@ variable "name" {}
 	if got := child.Diagnostics[0].ModuleAddress; got != "module.child" {
 		t.Fatalf("child diagnostic module address = %q, want module.child", got)
 	}
+	if len(doc.Diagnostics) != 0 {
+		t.Fatalf("child diagnostics leaked to root document: %#v", doc.Diagnostics)
+	}
+}
+
+func TestLoadDirKeepsChildParseDiagnosticsModuleLocal(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+module "child" {
+  source = "./child"
+}
+`)
+	writeTestFile(t, filepath.Join(dir, "child"), "main.tf", `
+resource "bad" "x" {
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	child := requireModule(t, doc, "module.child")
+	if len(child.Diagnostics) == 0 {
+		t.Fatalf("child parse diagnostics = %#v, want at least one", child.Diagnostics)
+	}
+	if len(doc.Diagnostics) != 0 {
+		t.Fatalf("child parse diagnostics leaked to root document: %#v", doc.Diagnostics)
+	}
 }
 
 func TestLoadDirModuleCycleGuard(t *testing.T) {
@@ -478,6 +505,36 @@ func TestLoadDirUsesTofuAlternativeAndOverrideOrdering(t *testing.T) {
 	}
 	if len(mod.Variables) != 1 || mod.Variables[0].Default == nil || mod.Variables[0].Default.Literal != "override" {
 		t.Fatalf("override variable not applied: %#v", mod.Variables)
+	}
+	if len(doc.Diagnostics) != 1 || doc.Diagnostics[0].Code != "tofu_alternative_ignored" {
+		t.Fatalf("tofu alternative diagnostics = %#v, want structured info diagnostic", doc.Diagnostics)
+	}
+}
+
+func TestLoadDirDecodesProviderConfigurationAliases(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "versions.tf", `
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      configuration_aliases = [aws.east, aws.west]
+    }
+  }
+}
+`)
+
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir failed: %v", err)
+	}
+	mod := requireModule(t, doc, "")
+	if len(mod.RequiredProviders) != 1 {
+		t.Fatalf("required providers = %#v, want one aws provider", mod.RequiredProviders)
+	}
+	got := strings.Join(mod.RequiredProviders[0].ConfigurationAliases, ",")
+	if got != "aws.east,aws.west" {
+		t.Fatalf("configuration aliases = %q, want aws.east,aws.west", got)
 	}
 }
 

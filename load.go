@@ -2,7 +2,6 @@ package tfconfig
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -131,7 +130,12 @@ func (l *moduleLoader) loadModule(doc *Document, moduleAbs, address, parentAddre
 
 	for _, file := range files {
 		body, parseDiags := parseFile(l.parser, file)
-		doc.Diagnostics = append(doc.Diagnostics, convertDiagnostics(parseDiags, address, "", l.sources)...)
+		convertedParseDiags := convertDiagnostics(parseDiags, address, "", l.sources)
+		if address == "" {
+			doc.Diagnostics = append(doc.Diagnostics, convertedParseDiags...)
+		} else {
+			mod.Diagnostics = append(mod.Diagnostics, convertedParseDiags...)
+		}
 		if body == nil {
 			continue
 		}
@@ -244,9 +248,13 @@ func discoverModuleFiles(rootAbs, moduleAbs string, opts LoadOptions) ([]discove
 		})
 	}
 
-	primary = filterTfFilesWithTofuAlternatives(primary)
-	override = filterTfFilesWithTofuAlternatives(override)
-	tests = filterTfFilesWithTofuAlternatives(tests)
+	var ignoredDiags []Diagnostic
+	primary, ignoredDiags = filterTfFilesWithTofuAlternatives(primary)
+	diags = append(diags, ignoredDiags...)
+	override, ignoredDiags = filterTfFilesWithTofuAlternatives(override)
+	diags = append(diags, ignoredDiags...)
+	tests, ignoredDiags = filterTfFilesWithTofuAlternatives(tests)
+	diags = append(diags, ignoredDiags...)
 
 	files := make([]discoveredFile, 0, len(primary)+len(override)+len(tests))
 	files = append(files, primary...)
@@ -605,7 +613,7 @@ func isIgnoredFile(name string) bool {
 		strings.HasPrefix(name, "#") && strings.HasSuffix(name, "#")
 }
 
-func filterTfFilesWithTofuAlternatives(paths []discoveredFile) []discoveredFile {
+func filterTfFilesWithTofuAlternatives(paths []discoveredFile) ([]discoveredFile, []Diagnostic) {
 	var ignored []string
 	var relevant []discoveredFile
 	all := make([]string, 0, len(paths))
@@ -629,10 +637,16 @@ func filterTfFilesWithTofuAlternatives(paths []discoveredFile) []discoveredFile 
 		}
 		relevant = append(relevant, byAbs[file.AbsPath])
 	}
-	if len(ignored) > 0 {
-		log.Printf("[INFO] ignored .tf files because .tofu alternatives exist: %q", ignored)
+	if len(ignored) == 0 {
+		return relevant, nil
 	}
-	return relevant
+	sort.Strings(ignored)
+	return relevant, []Diagnostic{{
+		Severity: DiagnosticInfo,
+		Code:     "tofu_alternative_ignored",
+		Summary:  "Ignored .tf files with .tofu alternatives",
+		Detail:   fmt.Sprintf("The following .tf files were ignored because matching .tofu alternatives exist: %s.", strings.Join(ignored, ", ")),
+	}}
 }
 
 func normalizePath(path string) string {

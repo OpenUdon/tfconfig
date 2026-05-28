@@ -42,6 +42,7 @@ func cloneProviderRequirements(in []ProviderRequirement) []ProviderRequirement {
 	out := cloneSlice(in)
 	for i := range out {
 		out[i].VersionConstraints = cloneSlice(out[i].VersionConstraints)
+		out[i].ConfigurationAliases = cloneSlice(out[i].ConfigurationAliases)
 		out[i].Range = cloneSourceRange(out[i].Range)
 	}
 	return out

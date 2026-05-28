@@ -198,9 +198,69 @@ func decodeRequiredProvidersBlock(block *hcl.Block, sources map[string]sourceInf
 		} else if version, ok := val.Literal.(string); ok {
 			req.VersionConstraints = []string{version}
 		}
+		req.ConfigurationAliases = providerRequirementConfigurationAliases(attr.Expr, nil, sources)
 		reqs = append(reqs, req)
 	}
 	return reqs, out
+}
+
+func providerRequirementConfigurationAliases(expr hcl.Expression, literal map[string]any, sources map[string]sourceInfo) []string {
+	var aliases []string
+	if obj, ok := expr.(*hclsyntax.ObjectConsExpr); ok {
+		for _, item := range obj.Items {
+			key := strings.Trim(exprText(item.KeyExpr, sources), `"`)
+			if key != "configuration_aliases" {
+				continue
+			}
+			for _, ref := range referencesFromExpr(item.ValueExpr, sources) {
+				if strings.TrimSpace(ref.Traversal) != "" {
+					aliases = append(aliases, ref.Traversal)
+				}
+			}
+			val := valueFromExpr(item.ValueExpr, "configuration_aliases", sources)
+			for _, alias := range stringListLiteral(val.Literal) {
+				aliases = append(aliases, alias)
+			}
+		}
+	}
+	for _, alias := range stringListLiteral(literal["configuration_aliases"]) {
+		aliases = append(aliases, alias)
+	}
+	return sortedUniqueNonEmpty(aliases)
+}
+
+func stringListLiteral(value any) []string {
+	switch typed := value.(type) {
+	case []string:
+		return append([]string(nil), typed...)
+	case []any:
+		out := make([]string, 0, len(typed))
+		for _, item := range typed {
+			if text, ok := item.(string); ok {
+				out = append(out, text)
+			}
+		}
+		return out
+	case string:
+		return []string{typed}
+	default:
+		return nil
+	}
+}
+
+func sortedUniqueNonEmpty(values []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func decodeProviderBlock(block *hcl.Block, sources map[string]sourceInfo) (ProviderConfig, []Diagnostic) {
