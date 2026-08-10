@@ -61,6 +61,13 @@ go vet ./...
 GitHub Actions also includes a weekly/manual workflow that runs the sync and
 opens a review-required pull request when files change.
 
+The workflow uses a repository secret named `TFCONFIG_SYNC_TOKEN` to push the
+sync branch and open the pull request because the OpenUdon organization does
+not permit the default `GITHUB_TOKEN` to create pull requests. Configure it as
+a fine-grained token from a dedicated automation account, scoped only to this
+repository with **Contents: Read and write** and **Pull requests: Read and
+write**. No token is required when a sync run produces no changes.
+
 The workflow is scheduled to run every Monday at 06:17 UTC:
 
 ```yaml

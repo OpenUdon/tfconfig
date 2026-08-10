@@ -11,29 +11,31 @@ on:
     - cron: "17 6 * * 1"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout tfconfig
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: tfconfig
+          persist-credentials: false
 
       - name: Checkout OpenTofu
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: opentofu/opentofu
           ref: ${{ inputs.opentofu_ref || 'main' }}
           path: opentofu
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           go-version-file: tfconfig/go.mod
+          cache-dependency-path: tfconfig/go.sum
 
       - name: Sync allowlisted OpenTofu files
         working-directory: tfconfig
@@ -53,9 +55,33 @@ jobs:
         working-directory: tfconfig
         run: git diff --check
 
+      - name: Detect synced changes
+        id: changes
+        working-directory: tfconfig
+        shell: bash
+        run: |
+          if [[ -n "$(git status --porcelain)" ]]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require sync pull-request token
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          TFCONFIG_SYNC_TOKEN: ${{ secrets.TFCONFIG_SYNC_TOKEN }}
+        shell: bash
+        run: |
+          if [[ -z "$TFCONFIG_SYNC_TOKEN" ]]; then
+            echo "::error::Configure the TFCONFIG_SYNC_TOKEN repository secret with contents and pull-request write access."
+            exit 1
+          fi
+
       - name: Create pull request
-        uses: peter-evans/create-pull-request@v7
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ secrets.TFCONFIG_SYNC_TOKEN }}
           path: tfconfig
           branch: automation/sync-opentofu
           delete-branch: true
