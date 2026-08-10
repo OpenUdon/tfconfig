@@ -11,6 +11,46 @@ import (
 	"time"
 )
 
+// ResourceInstanceObject represents a single object associated with a
+// resource instance inside a module that's implied by context rather than
+// represented directly in the value.
+//
+// This is a module-relative version of [AbsResourceInstanceObject] for
+// specialist situations where the containing module instance is specified
+// some other way, such as by being implied by the reciever of a method call.
+type ResourceInstanceObject struct {
+	// InstanceAddr is the address of the resource instance that this object
+	// belongs to.
+	InstanceAddr ResourceInstance
+
+	// DeposedKey is the deposed key of a deposed object, or [NotDeposed] when
+	// representing the "current" object for a resource instance.
+	DeposedKey DeposedKey
+}
+
+// IsCurrent returns true if this represents the "current" object of some
+// resource instance.
+func (o ResourceInstanceObject) IsCurrent() bool {
+	return o.DeposedKey == NotDeposed
+}
+
+// IsDeposed returns true if this represents a "deposed" object of some
+// resource instance.
+func (o ResourceInstanceObject) IsDeposed() bool {
+	return o.DeposedKey != NotDeposed
+}
+
+func (o ResourceInstanceObject) String() string {
+	if o.DeposedKey == NotDeposed {
+		return o.InstanceAddr.String()
+	}
+	return fmt.Sprintf("%s deposed object %q", o.InstanceAddr.String(), o.DeposedKey.String())
+}
+
+func (o ResourceInstanceObject) Equal(other ResourceInstanceObject) bool {
+	return o.DeposedKey == other.DeposedKey && o.InstanceAddr.Equal(other.InstanceAddr)
+}
+
 // AbsResourceInstanceObject represents a single object associated with a
 // resource instance.
 //
@@ -31,8 +71,8 @@ type AbsResourceInstanceObject struct {
 
 // CurrentObject returns an [AbsResourceInstanceObject] representing the current
 // object belonging to this resource instance.
-func (ri AbsResourceInstance) CurrentObject() AbsResourceInstanceObject {
-	return ri.Object(NotDeposed)
+func (r AbsResourceInstance) CurrentObject() AbsResourceInstanceObject {
+	return r.Object(NotDeposed)
 }
 
 // CurrentObject returns an [AbsResourceInstanceObject] for this resource
@@ -41,9 +81,9 @@ func (ri AbsResourceInstance) CurrentObject() AbsResourceInstanceObject {
 // It's okay to pass [NotDeposed], but if you'd be passing that as a constant
 // rather than as a calculated value then [AbsResourceInstance.CurrentObject]
 // is a clearer way to communicate that idea.
-func (ri AbsResourceInstance) Object(key DeposedKey) AbsResourceInstanceObject {
+func (r AbsResourceInstance) Object(key DeposedKey) AbsResourceInstanceObject {
 	return AbsResourceInstanceObject{
-		InstanceAddr: ri,
+		InstanceAddr: r,
 		DeposedKey:   key,
 	}
 }
@@ -58,6 +98,16 @@ func (o AbsResourceInstanceObject) IsCurrent() bool {
 // resource instance.
 func (o AbsResourceInstanceObject) IsDeposed() bool {
 	return o.DeposedKey != NotDeposed
+}
+
+// ModuleRelative returns the [ResourceInstanceObject] value that identifies
+// the same object when used relative to the module instance that the receiver
+// belongs to.
+func (o AbsResourceInstanceObject) ModuleRelative() ResourceInstanceObject {
+	return ResourceInstanceObject{
+		InstanceAddr: o.InstanceAddr.Resource,
+		DeposedKey:   o.DeposedKey,
+	}
 }
 
 func (o AbsResourceInstanceObject) String() string {
