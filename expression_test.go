@@ -65,3 +65,49 @@ resource "example_resource" "main" {
 		t.Fatalf("collection JSON drifted: %s", data)
 	}
 }
+
+func TestLoadDirEvaluatesOnlyLiteralToSet(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "main.tf", `
+variable "names" {}
+
+resource "example_resource" "literal" {
+  count    = 2
+  for_each = toset(["green", "blue", "green"])
+}
+
+resource "example_resource" "symbolic" {
+  for_each = toset(var.names)
+}
+
+resource "example_resource" "unknown_function" {
+  for_each = range(2)
+}
+`)
+	doc, err := LoadDir(dir)
+	if err != nil {
+		t.Fatalf("LoadDir: %v", err)
+	}
+	resources := requireModule(t, doc, "").Resources
+	if len(resources) != 3 {
+		t.Fatalf("resources = %#v", resources)
+	}
+	literal := resources[0]
+	if literal.Count == nil || literal.Count.Kind != ValueKindNumber || literal.Count.Literal != int64(2) {
+		t.Fatalf("literal count = %#v", literal.Count)
+	}
+	if literal.ForEach == nil || literal.ForEach.Kind != ValueKindCollection || literal.ForEach.CollectionKind != CollectionKindSet {
+		t.Fatalf("literal toset = %#v", literal.ForEach)
+	}
+	if got, ok := literal.ForEach.Literal.([]any); !ok || !slices.Equal(got, []any{"blue", "green"}) {
+		t.Fatalf("literal toset values = %#v", literal.ForEach.Literal)
+	}
+	for _, resource := range resources[1:] {
+		if resource.ForEach == nil || resource.ForEach.Kind != ValueKindExpression || resource.ForEach.Expression == "" {
+			t.Fatalf("runtime-dependent function was not preserved symbolically: %#v", resource.ForEach)
+		}
+	}
+	if len(resources[1].ForEach.References) != 1 || resources[1].ForEach.References[0].Traversal != "var.names" {
+		t.Fatalf("symbolic toset references = %#v", resources[1].ForEach.References)
+	}
+}

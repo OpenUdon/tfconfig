@@ -630,8 +630,11 @@
             }
           },
           "for_each": {
-            "kind": "expression",
-            "expression": "toset([\"one\"])",
+            "kind": "collection",
+            "collection_kind": "set",
+            "literal": [
+              "one"
+            ],
             "range": {
               "source_id": "modules/child/main.tf",
               "path": "modules/child/main.tf",

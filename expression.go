@@ -7,9 +7,16 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/function"
+	"github.com/zclconf/go-cty/cty/function/stdlib"
 )
+
+var staticLiteralFunctions = map[string]function.Function{
+	"toset": stdlib.MakeToFunc(cty.Set(cty.DynamicPseudoType)),
+}
 
 type sourceInfo struct {
 	id   string
@@ -23,6 +30,9 @@ func valueFromExpr(expr hcl.Expression, attrPath string, sources map[string]sour
 	rng := sourceRange(expr.Range(), sources)
 
 	val, diags := expr.Value(nil)
+	if diags.HasErrors() && allowedStaticLiteralCall(expr) {
+		val, diags = expr.Value(&hcl.EvalContext{Functions: staticLiteralFunctions})
+	}
 	if !diags.HasErrors() && val.IsWhollyKnown() {
 		kind, collectionKind, literal, ok := literalFromCty(val)
 		if ok {
@@ -52,6 +62,11 @@ func valueFromExpr(expr hcl.Expression, attrPath string, sources map[string]sour
 		References: refs,
 		Range:      rng,
 	}
+}
+
+func allowedStaticLiteralCall(expr hcl.Expression) bool {
+	call, ok := expr.(*hclsyntax.FunctionCallExpr)
+	return ok && call.Name == "toset"
 }
 
 func referencesFromExpr(expr hcl.Expression, sources map[string]sourceInfo) []Reference {
