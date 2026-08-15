@@ -672,9 +672,10 @@ func flattenNestedBlock(prefix string, block *hclsyntax.Block, sources map[strin
 		out = append(out, Attribute{
 			Path: prefix,
 			Value: Value{
-				Kind:    ValueKindCollection,
-				Literal: map[string]any{},
-				Range:   sourceRange(block.Range(), sources),
+				Kind:           ValueKindCollection,
+				CollectionKind: CollectionKindObject,
+				Literal:        map[string]any{},
+				Range:          sourceRange(block.Range(), sources),
 			},
 			Range: sourceRange(block.Range(), sources),
 		})

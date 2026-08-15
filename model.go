@@ -331,11 +331,25 @@ const (
 	ValueKindRedacted   ValueKind = "redacted"
 )
 
+// CollectionKind preserves the HCL/cty collection shape for static literals.
+// Downstream consumers can distinguish Terraform for_each-compatible maps and
+// sets from tuple/list values without re-parsing source expressions.
+type CollectionKind string
+
+const (
+	CollectionKindObject CollectionKind = "object"
+	CollectionKindMap    CollectionKind = "map"
+	CollectionKindTuple  CollectionKind = "tuple"
+	CollectionKindList   CollectionKind = "list"
+	CollectionKindSet    CollectionKind = "set"
+)
+
 // Value represents either a static literal, a symbolic expression, an unknown
 // value, or a redacted sensitive/likely-secret literal. Public JSON never emits
 // Literal when Sensitive, SensitiveCandidate, or Redacted is true.
 type Value struct {
 	Kind               ValueKind           `json:"kind"`
+	CollectionKind     CollectionKind      `json:"collection_kind,omitempty"`
 	Literal            any                 `json:"literal,omitempty"`
 	Expression         string              `json:"expression,omitempty"`
 	References         []Reference         `json:"references,omitempty"`

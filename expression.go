@@ -24,13 +24,14 @@ func valueFromExpr(expr hcl.Expression, attrPath string, sources map[string]sour
 
 	val, diags := expr.Value(nil)
 	if !diags.HasErrors() && val.IsWhollyKnown() {
-		kind, literal, ok := literalFromCty(val)
+		kind, collectionKind, literal, ok := literalFromCty(val)
 		if ok {
 			out := Value{
-				Kind:       kind,
-				Literal:    literal,
-				References: refs,
-				Range:      rng,
+				Kind:           kind,
+				CollectionKind: collectionKind,
+				Literal:        literal,
+				References:     refs,
+				Range:          rng,
 			}
 			if candidatePath, ok := sensitiveCandidatePath(attrPath, out.Literal); ok {
 				out.SensitiveCandidate = &SensitiveCandidate{
@@ -103,41 +104,52 @@ func referenceSubject(traversal hcl.Traversal, fallback string) string {
 	}
 }
 
-func literalFromCty(val cty.Value) (ValueKind, any, bool) {
+func literalFromCty(val cty.Value) (ValueKind, CollectionKind, any, bool) {
 	if val.IsNull() {
-		return ValueKindNull, nil, true
+		return ValueKindNull, "", nil, true
 	}
 	typ := val.Type()
 	switch {
 	case typ == cty.Bool:
-		return ValueKindBool, val.True(), true
+		return ValueKindBool, "", val.True(), true
 	case typ == cty.String:
-		return ValueKindString, val.AsString(), true
+		return ValueKindString, "", val.AsString(), true
 	case typ == cty.Number:
-		return ValueKindNumber, numberLiteral(val), true
+		return ValueKindNumber, "", numberLiteral(val), true
 	case typ.IsObjectType() || typ.IsMapType():
 		obj := map[string]any{}
 		for key, child := range val.AsValueMap() {
-			_, literal, ok := literalFromCty(child)
+			_, _, literal, ok := literalFromCty(child)
 			if !ok {
-				return ValueKindExpression, nil, false
+				return ValueKindExpression, "", nil, false
 			}
 			obj[key] = literal
 		}
-		return ValueKindCollection, obj, true
+		collectionKind := CollectionKindObject
+		if typ.IsMapType() {
+			collectionKind = CollectionKindMap
+		}
+		return ValueKindCollection, collectionKind, obj, true
 	case typ.IsTupleType() || typ.IsListType() || typ.IsSetType():
 		values := val.AsValueSlice()
 		arr := make([]any, 0, len(values))
 		for _, child := range values {
-			_, literal, ok := literalFromCty(child)
+			_, _, literal, ok := literalFromCty(child)
 			if !ok {
-				return ValueKindExpression, nil, false
+				return ValueKindExpression, "", nil, false
 			}
 			arr = append(arr, literal)
 		}
-		return ValueKindCollection, arr, true
+		collectionKind := CollectionKindTuple
+		switch {
+		case typ.IsListType():
+			collectionKind = CollectionKindList
+		case typ.IsSetType():
+			collectionKind = CollectionKindSet
+		}
+		return ValueKindCollection, collectionKind, arr, true
 	default:
-		return ValueKindExpression, nil, false
+		return ValueKindExpression, "", nil, false
 	}
 }
 
