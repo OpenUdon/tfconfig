@@ -277,8 +277,18 @@ output "ready" {
 		len(call.DependsOn) != 1 {
 		t.Fatalf("module call facts not preserved: %#v", call)
 	}
+	if call.Count.Kind != ValueKindNumber || call.Count.Literal != int64(1) || call.Range == nil || call.Inputs[0].Range == nil || call.ProviderMappings[0].Range == nil {
+		t.Fatalf("module call instance/input/mapping ranges are incomplete: %#v", call)
+	}
 	if len(child.ModuleCalls) != 1 || child.ModuleCalls[0].Address != "module.child.module.grandchild" || child.ModuleCalls[0].ForEach == nil {
 		t.Fatalf("nested module call facts not preserved with full address: %#v", child.ModuleCalls)
+	}
+	grandchildCall := child.ModuleCalls[0]
+	if grandchildCall.ForEach.Kind != ValueKindCollection || grandchildCall.ForEach.CollectionKind != CollectionKindSet || grandchildCall.ForEach.Range == nil {
+		t.Fatalf("nested module for_each fact = %#v, want source-aware static set", grandchildCall.ForEach)
+	}
+	if values, ok := grandchildCall.ForEach.Literal.([]any); !ok || len(values) != 1 || values[0] != "one" {
+		t.Fatalf("nested module for_each values = %#v", grandchildCall.ForEach.Literal)
 	}
 }
 

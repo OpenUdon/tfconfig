@@ -84,7 +84,18 @@ static source projection; it does not run `terraform test` or `tofu test`.
 ## Value Projection
 
 Values distinguish literals, symbolic expressions, unknowns, collections, and
-redacted sensitive or likely-secret literals.
+redacted sensitive or likely-secret literals. Static collections include an
+optional `collection_kind` of `object`, `map`, `tuple`, `list`, or `set`, so a
+consumer does not need to re-parse source text to distinguish a
+`for_each`-compatible map/set from a tuple/list.
+
+The parser recognizes a top-level `toset` only when its argument is already a
+wholly known literal. This narrow pure-function whitelist supports common
+literal `for_each` declarations while variable-backed calls, locals,
+conditionals, unknown functions, and other runtime-dependent expressions stay
+symbolic with their source text, references, and range. The parser does not
+resolve variables or locals and does not expose filesystem, environment,
+time/random, provider, network, or Terraform/OpenTofu runtime functions.
 
 Symbolic references such as `var.api_token` remain expressions with references.
 Values marked as likely secret candidates are emitted as:
