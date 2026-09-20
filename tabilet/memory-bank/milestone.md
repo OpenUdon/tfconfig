@@ -11,7 +11,7 @@ copy task rows into this roadmap or create an aggregate `status.md`.
 
 ## Status ID Pattern
 
-Status files are named `memory-bank/status-<LANE><NN>.md`, where `<LANE>` is
+Status files are named `tabilet/memory-bank/status-<LANE><NN>.md`, where `<LANE>` is
 one uppercase domain letter and `<NN>` is a zero-padded number from `01`
 through `99` within that lane.
 

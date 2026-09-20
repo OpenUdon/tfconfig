@@ -23,23 +23,23 @@ blocks, checks, tests, diagnostics, and static module trees.
 
 Before substantial parser changes, read these in order:
 
-1. [memory-bank/product.md](memory-bank/product.md)
-2. [memory-bank/architecture.md](memory-bank/architecture.md)
-3. [memory-bank/tech-stack.md](memory-bank/tech-stack.md)
-4. [memory-bank/milestone.md](memory-bank/milestone.md)
-5. The relevant per-milestone status file in [memory-bank/](memory-bank/)
+1. [tabilet/memory-bank/product.md](tabilet/memory-bank/product.md)
+2. [tabilet/memory-bank/architecture.md](tabilet/memory-bank/architecture.md)
+3. [tabilet/memory-bank/tech-stack.md](tabilet/memory-bank/tech-stack.md)
+4. [tabilet/memory-bank/milestone.md](tabilet/memory-bank/milestone.md)
+5. The relevant per-milestone status file in [tabilet/memory-bank/](tabilet/memory-bank/)
 
 Do not recreate duplicate root-level product, architecture, roadmap, or status
 documents. Long-form references live in `docs/`; README is the operator entry
 point.
 
-This project exposes [GOAL.md](GOAL.md), one optional protocol for goal requests
+This project exposes [tabilet/GOAL.md](tabilet/GOAL.md), one optional protocol for goal requests
 that span multiple status files. Follow it only when a request names it.
 
-A `GOAL.md` run is a deliberate exception to the row-level commit rule below.
+A `tabilet/GOAL.md` run is a deliberate exception to the row-level commit rule below.
 For that run, `COMMIT_POLICY: none` — the protocol default — means no commits,
 while `COMMIT_POLICY: task` keeps the usual one-commit-per-row cadence.
-Precedence is the request, then `GOAL.md`, then this file; only commits are
+Precedence is the request, then `tabilet/GOAL.md`, then this file; only commits are
 delegated, and only during the run.
 
 ## Boundary
@@ -210,7 +210,7 @@ module exists and use `git -C ../opentofu` only for upstream inspection.
 - Treat each row as a commit unit once implementation begins. Parallel work
   across parser and upstream-mirror lanes requires explicit non-overlapping
   ownership, resolved prerequisites, and downstream impact in `milestone.md`.
-- Check [evolution/](evolution/) after a major review, milestone, or parser
+- Check [tabilet/evolution/](tabilet/evolution/) after a major review, milestone, or parser
   boundary change. Add a new version only when product direction, architecture
   boundary, milestone target, or public contract direction materially changes.
 

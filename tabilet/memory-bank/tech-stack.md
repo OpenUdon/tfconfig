@@ -21,7 +21,7 @@
 - `UPSTREAM.md`, `THIRD_PARTY.md`, `licenses/opentofu-MPL-2.0.txt`:
   provenance and license records.
 - `docs/static-v1.md`: public model contract.
-- `memory-bank/`: active parser project memory and milestone status.
+- `tabilet/memory-bank/`: active parser project memory and milestone status.
 - `../skills/harness/tackle-memory-bank-api-loop`: optional unattended runner
   for canonical `status-<LANE><NN>.md` task ledgers.
 
