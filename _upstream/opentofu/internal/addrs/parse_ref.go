@@ -50,7 +50,7 @@ func (r *Reference) DisplayString() string {
 			ret.WriteByte('[')
 			switch tStep.Key.Type() {
 			case cty.String:
-				ret.WriteString(fmt.Sprintf("%q", tStep.Key.AsString()))
+				fmt.Fprintf(&ret, "%q", tStep.Key.AsString())
 			case cty.Number:
 				bf := tStep.Key.AsBigFloat()
 				ret.WriteString(bf.Text('g', 10))
@@ -260,6 +260,12 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		})
 		return nil, diags
 	default:
+		if len(traversal) == 1 && isTypeKeyword(traversal.RootName()) {
+			return &Reference{
+				Subject:     TypeKeyword(traversal.RootName()),
+				SourceRange: tfdiags.SourceRangeFromHCL(rootRange),
+			}, nil
+		}
 		function := ParseFunction(root)
 		if function.IsNamespace(FunctionNamespaceProvider) {
 			pf, err := function.AsProviderFunction()
