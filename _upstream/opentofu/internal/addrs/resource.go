@@ -126,6 +126,10 @@ func (r ResourceInstance) Equal(o ResourceInstance) bool {
 	return r.Key == o.Key && r.Resource.Equal(o.Resource)
 }
 
+func (r ResourceInstance) PlaceholderContains(o ResourceInstance) bool {
+	return (r.IsPlaceholder() || r.Key == o.Key) && r.Resource.Equal(o.Resource)
+}
+
 func (r ResourceInstance) Less(o ResourceInstance) bool {
 	if !r.Resource.Equal(o.Resource) {
 		return r.Resource.Less(o.Resource)
@@ -394,6 +398,10 @@ func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
+func (r AbsResourceInstance) PlaceholderContains(o AbsResourceInstance) bool {
+	return r.Module.PlaceholderContains(o.Module) && r.Resource.PlaceholderContains(o.Resource)
+}
+
 // Less returns true if the receiver should sort before the given other value
 // in a sorted list of addresses.
 func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
@@ -464,6 +472,16 @@ func ParseConfigResource(traversal hcl.Traversal) (ConfigResource, tfdiags.Diagn
 
 	configRes, moreDiags := parseResourceUnderModule(modulePath, remainTraversal)
 	return configRes, diags.Append(moreDiags)
+}
+
+// MustParseResourceAddr is used to parse a string representation of a resource address to a ConfigResource.
+// Meant to be used only in tests since this panics if the parsing fails.
+func MustParseResourceAddr(s string) ConfigResource {
+	addr, diags := ParseAbsResourceStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return addr.Config()
 }
 
 // Resource returns the address of a particular resource within the module.

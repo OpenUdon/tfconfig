@@ -26,7 +26,7 @@ import (
 // creates an in-memory snapshot of the configuration files used, which can
 // be later used to create a loader that may read only from this snapshot.
 func (l *loader) LoadConfigWithSnapshot(ctx context.Context, rootDir string, call configs.StaticModuleCall) (*configs.Config, *Snapshot, hcl.Diagnostics) {
-	rootMod, diags := l.parser.LoadConfigDir(rootDir, call)
+	rootMod, diags := l.parser.LoadConfigDir(rootDir)
 	if rootMod == nil {
 		return nil, nil, diags
 	}
@@ -35,7 +35,7 @@ func (l *loader) LoadConfigWithSnapshot(ctx context.Context, rootDir string, cal
 		Modules: map[string]*SnapshotModule{},
 	}
 	walker := l.makeModuleWalkerSnapshot(snap)
-	cfg, cDiags := configs.BuildConfig(ctx, rootMod, walker)
+	cfg, cDiags := configs.BuildConfig(ctx, rootMod, call, walker)
 	diags = append(diags, cDiags...)
 
 	addDiags := l.addModuleToSnapshot(snap, "", rootDir, "", nil)
@@ -158,14 +158,14 @@ func (l *loader) makeModuleWalkerSnapshot(snap *Snapshot) configs.ModuleWalker {
 			diags = append(diags, addDiags...)
 
 			return mod, v, diags
-		},
+		}, l.parser.LoadSymbolFilesInDir,
 	)
 }
 
 func (l *loader) addModuleToSnapshot(snap *Snapshot, key string, dir string, sourceAddr string, v *version.Version) hcl.Diagnostics {
 	var diags hcl.Diagnostics
 
-	primaryFiles, overrideFiles, moreDiags := l.parser.ConfigDirFiles(dir)
+	primaryFiles, overrideFiles, symbolFiles, moreDiags := l.parser.ConfigDirFiles(dir)
 	if moreDiags.HasErrors() {
 		// Any diagnostics we get here should be already present
 		// in diags, so it's weird if we get here but we'll allow it
@@ -185,9 +185,10 @@ func (l *loader) addModuleToSnapshot(snap *Snapshot, key string, dir string, sou
 		Version:    v,
 	}
 
-	files := make([]string, 0, len(primaryFiles)+len(overrideFiles))
+	files := make([]string, 0, len(primaryFiles)+len(overrideFiles)+len(symbolFiles))
 	files = append(files, primaryFiles...)
 	files = append(files, overrideFiles...)
+	files = append(files, symbolFiles...)
 	sources := l.Sources() // should be populated with all the files we need by now
 	for _, filePath := range files {
 		filename := filepath.Base(filePath)

@@ -122,8 +122,8 @@ func TestOpenTofuValidModulesFixtureCorpus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("glob OpenTofu valid-modules fixtures: %v", err)
 	}
-	if len(fixtures) != 34 {
-		t.Fatalf("OpenTofu valid-modules fixture count = %d, want 34", len(fixtures))
+	if len(fixtures) != 35 {
+		t.Fatalf("OpenTofu valid-modules fixture count = %d, want 35", len(fixtures))
 	}
 	expectedErrorCodes := map[string][]string{
 		// This upstream config loader fixture is valid without loading child

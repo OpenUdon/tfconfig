@@ -40,7 +40,6 @@ internal/configs/parser.go	_upstream/opentofu/internal/configs/parser.go	raw ups
 internal/configs/parser_config.go	_upstream/opentofu/internal/configs/parser_config.go	raw upstream snapshot; config/test file decoding entrypoints
 internal/configs/parser_config_dir.go	_upstream/opentofu/internal/configs/parser_config_dir.go	raw upstream snapshot; .tf/.tofu/JSON/override/test file selection
 internal/configs/provider.go	_upstream/opentofu/internal/configs/provider.go	raw upstream snapshot; provider config decoding
-internal/configs/provider_meta.go	_upstream/opentofu/internal/configs/provider_meta.go	raw upstream snapshot; provider_meta block facts
 internal/configs/provider_requirements.go	_upstream/opentofu/internal/configs/provider_requirements.go	raw upstream snapshot; required_providers decoding
 internal/configs/provider_validation.go	_upstream/opentofu/internal/configs/provider_validation.go	raw upstream snapshot; provider validation/reference behavior
 internal/configs/provisioner.go	_upstream/opentofu/internal/configs/provisioner.go	raw upstream snapshot; provisioner facts/diagnostics only
@@ -115,7 +114,7 @@ internal/addrs/provider.go	_upstream/opentofu/internal/addrs/provider.go	raw ups
 internal/addrs/provider_config.go	_upstream/opentofu/internal/addrs/provider_config.go	raw upstream snapshot; direct static parser support
 internal/addrs/provider_config_test.go	_upstream/opentofu/internal/addrs/provider_config_test.go	raw upstream snapshot; direct static parser support
 internal/addrs/provider_correct.go	_upstream/opentofu/internal/addrs/provider_correct.go	raw upstream snapshot; direct static parser support
-internal/addrs/provider_function.go	_upstream/opentofu/internal/addrs/provider_function.go	raw upstream snapshot; direct static parser support
+internal/addrs/functions.go	_upstream/opentofu/internal/addrs/functions.go	raw upstream snapshot; direct static parser support
 internal/addrs/provider_test.go	_upstream/opentofu/internal/addrs/provider_test.go	raw upstream snapshot; direct static parser support
 internal/addrs/referenceable.go	_upstream/opentofu/internal/addrs/referenceable.go	raw upstream snapshot; direct static parser support
 internal/addrs/removable.go	_upstream/opentofu/internal/addrs/removable.go	raw upstream snapshot; direct static parser support
